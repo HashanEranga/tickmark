@@ -1,0 +1,23 @@
+# IDE
+.idea/
+.vscode/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+
+# Client-confidential material (keep local only)
+docs/*.pdf
