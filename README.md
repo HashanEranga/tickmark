@@ -38,6 +38,10 @@ The client's reviewers will re-run the same ledger and expect the same ranking, 
 
 **Decisions:** the [architecture decision record](docs/adr.md) lists every significant choice, the alternatives we rejected and the assumptions we are working on until the client answers.
 
+**Evaluation:** the [evaluation plan](docs/evaluation-plan.md) measures detection and agent quality on our synthetic ledgers, with two public datasets as an external check.
+
+**Contributing:** branch, pull-request and release rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Rules for explaining it
 
 - Say **"reduces the review population"**. Never say "replaces the auditor".

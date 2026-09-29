@@ -32,6 +32,7 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 | [ADR-018](#adr-018--claude-on-amazon-bedrock-kept-in-japan) | Claude on Amazon Bedrock, kept in Japan | Accepted, models chosen by evaluation |
 | [ADR-019](#adr-019--observability-and-delivery) | Observability and delivery | Proposed |
 | [ADR-020](#adr-020--self-set-scale-extensions-from-17-september) | Self-set scale extensions from 17 September | Superseded by the client brief |
+| [ADR-021](#adr-021--local-development-with-docker-and-ollama-models) | Local development with Docker and Ollama models | Accepted |
 
 ## Decisions
 
@@ -341,7 +342,7 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 - *LangChain chains on their own:* fine for single calls, but awkward for conditional routing, parallel fan-out and resuming after a crash.
 - *Conversation-driven multi-agent frameworks* (AutoGen- or CrewAI-style): control flow emerges from agents talking to each other, which conflicts with ADR-009 and ADR-010.
 
-**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain talks to Claude on Bedrock like any other chat model, so changing the model or region is a configuration change (ADR-018). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
+**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain talks to Claude on Bedrock like any other chat model, so changing the model or region is a configuration change (ADR-018), which is also how local development swaps in Ollama models (ADR-021). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
 
 ### ADR-018 · Claude on Amazon Bedrock, kept in Japan
 
@@ -368,22 +369,29 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 ### ADR-019 · Observability and delivery
 
-**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan
+**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan, and for the `develop` and `main` branch flow (team decision)
 
-**Context:** The brief lists observability spans per engagement as a cost line, operability carries 10% of the handbook's marks, and the assessors review the GitHub history.
+**Context:** The brief lists observability spans per engagement as a cost line, operability carries 10% of the handbook's marks, and the assessors review the GitHub history. There is one cloud environment; developers work locally (ADR-021).
 
 **Decision:**
 - OpenTelemetry traces: one trace per run, with spans per stage and per model call, plus metrics for spend, calls, allowance use and cache hits. Spans carry IDs and hashes, never ledger text, and the telemetry backend runs in Japan.
 - Health checks on the Run API, workers, database and model calls raise an alarm that starts the failover runbook (ADR-015).
 - LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan. LangChain callbacks feed the OpenTelemetry traces instead.
-- GitHub Actions runs unit tests and a determinism test, in which the decision hash of a fixture ledger must match a checked-in value, then builds container images and deploys them to both regions through a short-lived AWS role, with no stored keys. Tests use synthetic fixtures only, so no ledger data passes through GitHub.
-- Rollback redeploys the previous image. Each run pins its image digest, so a deploy never changes a run in flight.
+- Two long-lived branches: `develop` collects finished work from short-lived feature branches, and `main` always matches the cloud. A release is a pull request from `develop` into `main`; an urgent fix branches from `main` and is merged back into `develop`. The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
+- Pull requests run the unit tests and a determinism test, in which the decision hash of a fixture ledger must match a checked-in value. After each merge into `develop`, a smoke test sends one synthetic case to Claude on Bedrock, because local development uses other models (ADR-021). Tests use synthetic data only, so no ledger data passes through GitHub.
+- Each merge into `main` builds the container images once and deploys them to both regions through a short-lived AWS role, with no stored keys.
+- The Run API is replaced by a rolling update: a new task takes traffic only after its health check passes, and ECS's deployment circuit breaker rolls a failed deploy back automatically. Workers are not restarted. Each run pins its image digest, so a run in flight finishes on the build it started with, and new runs use the new build.
+- Manual rollback redeploys the previous image.
 
 **Rejected alternatives:**
 - *A hosted observability service outside Japan, including hosted LangSmith:* telemetry that carries ledger data must stay in Japan.
 - *Manual deployment:* no audit trail in GitHub and no repeatable rollback.
+- *Trunk-based development, deploying every merge:* simpler, but with no cloud test environment every merge would go straight to the system the client uses.
+- *Full GitFlow, with release branches and version tags:* more ceremony than three people need on a short project.
+- *A separate cloud staging environment:* a second always-on cost; the Bedrock smoke test and local Docker cover most of its value.
+- *Restarting every service on deploy, as a Kubernetes rollout restart does:* it would interrupt runs in flight, and ADR-016 rejects Kubernetes.
 
-**Consequences:** The runbook can tie each failure to a span, a metric, and a rollback or failover step.
+**Consequences:** `main` always shows what runs in the cloud, and every release leaves a pull request in the GitHub history. The first full-size run of each new build happens in the cloud, so every release ends with one check run on a synthetic ledger. The repository is private on GitHub Free, which cannot enforce branch protection, so the branch rules hold by team agreement unless the team upgrades. The runbook can tie each failure to a span, a metric, and a rollback or failover step.
 
 ### ADR-020 · Self-set scale extensions from 17 September
 
@@ -394,6 +402,26 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 **Why it was replaced:** the brief asks for batch runs with a working paper, sets the peak at 12 concurrent engagements, keeps data in one region and makes USD 40 per engagement the binding constraint. Keeping those extensions would have meant accumulating technology rather than choosing it.
 
 **Kept as:** conditional extensions in scope §2, adopted only if the client or the course requires them. Multi-region hosting came back on 30 Sep 2026 as a team decision, inside one country (ADR-015).
+
+### ADR-021 · Local development with Docker and Ollama models
+
+**Status:** Accepted, 30 Sep 2026 (team decision)
+
+**Context:** Developers need to run the whole pipeline on their own machines, without AWS costs, credentials or shared state. Development uses only synthetic ledgers, so the rule that keeps ledger data in Japan (ADR-015) does not apply locally. In the cloud, agents call Claude on Bedrock (ADR-018), which is paid per call and needs AWS access.
+
+**Decision:**
+- Docker Compose runs the local environment with the same containers as the cloud: the Run API, a worker, PostgreSQL, S3-compatible object storage such as MinIO, and an OpenTelemetry collector.
+- Locally, agents call open-weights models through Ollama. The model provider is a configuration setting, `ollama` locally and `bedrock` in the cloud. LangChain supplies both chat models (ADR-017), and the graph, schemas and verifier stay the same.
+- Ollama runs in a container on Linux machines with a GPU, and natively on macOS, where Docker cannot use the GPU.
+- Each Ollama model is pinned by name and digest in the local configuration, so every developer runs the same model.
+- Local runs use small synthetic ledgers; full-size runs happen in the cloud.
+
+**Rejected alternatives:**
+- *Calling Claude on Bedrock from every laptop:* costs money on every test run and needs AWS credentials on every machine.
+- *A shared cloud development environment:* an always-on cost and shared state for a three-person team.
+- *Mocked model responses only:* fast and free, but they never exercise prompts, schemas or tool calls. Mocks stay in the unit tests.
+
+**Consequences:** Local runs say nothing about agent quality, because small local models behave differently from Claude. The agent evaluation, the load test and the demo run only against Bedrock ([evaluation plan](evaluation-plan.md)). The replay store keys every output by model (ADR-010), so local outputs never mix with cloud ones. Prompts may need small per-model differences; they stay in version control and are pinned in the run manifest (ADR-003). Every change reaches Bedrock through the smoke test on `develop` before release (ADR-019). A full-size local run would take hours, because a run makes up to about 3,000 model calls.
 
 ## Assumptions
 
@@ -425,6 +453,8 @@ Where the client has not told us something, the team decides and records the dec
 | ADR-014, ADR-016 | Measured cost stays under the pre-computed worst case, and 12 concurrent full-scale runs each finish inside 4 hours |
 | ADR-015 | A failover drill: a run interrupted in Tokyo resumes in Osaka within the recovery targets, with the same decision hash and no lost or duplicated results. A deployment check shows that no ledger data, model call or trace leaves Japan |
 | ADR-018 | Haiku 4.5 and Sonnet 5 are compared role by role on the agent-quality cases, and 12 concurrent runs stay within Bedrock's quotas and finish inside 4 hours |
+| ADR-019 | A deploy during a running engagement leaves the run unaffected, and a deliberately broken build is rolled back automatically |
+| ADR-021 | A new team member runs the pipeline end to end on a small synthetic ledger with one Docker Compose command |
 
 ## Change log
 
@@ -435,3 +465,4 @@ Where the client has not told us something, the team decides and records the dec
 - **29 Sep 2026:** the team set the region to Sri Lanka, where no major cloud provider or managed Claude endpoint can keep processing, and presumed answers to the open client questions.
 - **30 Sep 2026:** ADR-015 first put everything in Sri Lanka, with self-hosted open-weights models in ADR-018. The team rejected that the same day in favour of multi-region hosting with a managed model: ADR-015 now uses two AWS regions in Japan, Tokyo primary and Osaka standby, and ADR-018 uses Claude on Amazon Bedrock through its Japan profile. ADR-016, ADR-017, ADR-019 and ADR-020 were updated to match, and the Sri Lankan design became the fallback if the client requires Sri Lanka. Assumptions A1, A3, A4 and A10 hold the presumed answers, which are tracked in the new [client log](client-log.md).
 - **30 Sep 2026, later:** the team decided every open question itself, because the demo and evaluation use only synthetic ledgers; questions to the client and the instructors are still sent as confirmations ([client log](client-log.md)). ADR-004 now covers two business profiles and runs two public datasets as an external check, set out in the new [evaluation plan](evaluation-plan.md).
+- **30 Sep 2026, branch flow:** the team adopted `develop` and `main` branches, with `develop` as GitHub's default branch and a deploy to the cloud on every merge into `main` (ADR-019), and local development with Docker and Ollama models (ADR-021). The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
