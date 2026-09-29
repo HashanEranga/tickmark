@@ -26,7 +26,7 @@ Tickmark is a rules-first batch pipeline with a routed team of AI agents at the 
 
 The interesting engineering problem is cost. The client allows forty dollars of compute and model calls per 400,000-entry engagement, and sending every row to a language model would exceed that by orders of magnitude. So queries, rules and statistics score every entry, and only the entries that make the working paper reach the agents. A router agent sends each one to the specialists it needs (account and amount, poster and timing, narration), and a code guard makes sure every flagged criterion gets its specialist. The specialists work in parallel from a shared case file, using a typed catalogue of read-only ledger queries, a writer drafts the justification and shows any disagreement side by side, and a code verifier rejects any draft that cites a figure or entry the evidence doesn't contain. We report exactly how many entries and model calls reached the agents, and why.
 
-The client's reviewers will re-run the same ledger and expect the same ranking, so the ranking comes from deterministic criteria under a pinned run manifest, never from the agents. Routing decisions and agent outputs are recorded and replayed, so a re-run reproduces the working paper too, and if the model is down every flag still ships with its criterion, source record and a templated justification. Each run must finish in under four hours with twelve engagements running concurrently at peak, and ledgers must never leave the client's region.
+The client's reviewers will re-run the same ledger and expect the same ranking, so the ranking comes from deterministic criteria under a pinned run manifest, never from the agents. Routing decisions and agent outputs are recorded and replayed, so a re-run reproduces the working paper too, and if the model is down every flag still ships with its criterion, source record and a templated justification. Each run must finish in under four hours with twelve engagements running concurrently at peak, and ledgers must never leave the client's region, so Tickmark is designed to run in two cloud regions inside one approved country, with a standby that takes over if the primary fails.
 
 ---
 
@@ -47,4 +47,4 @@ The client's reviewers will re-run the same ledger and expect the same ranking, 
 
 ---
 
-*Title and description last revised 2026-09-24 against the client brief (v1.0, 18 Sep 2026).*
+*Title and description last revised 2026-09-30 against the client brief (v1.0, 18 Sep 2026).*

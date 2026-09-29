@@ -18,7 +18,7 @@ sequenceDiagram
     R->>G: suggestion
     Note over G: adds required<br/>specialists
     G->>S: open case file + evidence pack
-    Note over A,N: each reads the evidence pack,<br/>may run catalogue queries,<br/>calls the in-region model
+    Note over A,N: each reads the evidence pack,<br/>may run catalogue queries,<br/>calls Claude on Bedrock
     par in parallel
         G->>A: round sum
         A->>S: finding

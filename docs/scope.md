@@ -16,9 +16,9 @@ The brief confirms Tickmark's problem: ranking journal entries for ISA 240 testi
 | Runtime | Under 4 hours per engagement, start to finish | Measured end to end at full scale, including at peak concurrency |
 | Traceability | Every flag resolves to a source record and a named criterion; an unexplainable flag is worse than none | No flag is emitted without its criterion and source record, and a code verifier rejects any justification that cites evidence the run does not hold |
 | Determinism | The same ledger and settings produce the same ranking, and the client's reviewers will check | Ranking is reproducible from a pinned run manifest and is not decided by the agents (§§2, 5) |
-| Data | Client ledgers are confidential and stay in the client's region | Storage, processing, model calls and telemetry that carry ledger data stay in that region |
+| Data | Client ledgers are confidential and stay in the client's region | No cloud provider has a region in Sri Lanka, so the team proposes Japan, pending the client (§7): storage, processing, the model and telemetry that carry ledger data stay in Japan, across two regions (ADR-015, ADR-018) |
 
-Neither the handbook nor the brief requires multi-cloud, multi-region, Kubernetes, continuous monitoring or zero-downtime deployment. The data constraint also rules out placing ledger data outside the client's region; whether two cloud regions can both qualify depends on how the client defines its region (§7). Retain these only as conditional extensions (§2).
+Neither the handbook nor the brief requires multi-cloud, multi-region, Kubernetes, continuous monitoring or zero-downtime deployment. The team has chosen multi-region hosting with a managed model, so that a regional outage in peak season does not stop engagements. No major cloud provider has a region in Sri Lanka, so the team proposes Japan, the only Asian country where Claude on Amazon Bedrock keeps processing in-country across two regions: Tokyo runs the system and Osaka stands by (ADR-015, ADR-018). The client is asked to confirm this (§7, [client log](client-log.md) Q-06). Retain the other capabilities only as conditional extensions (§2).
 
 The routed multi-agent team at step 5 is a team decision rather than a client requirement. The bootcamp is about agentic AI and the project is framed as a multi-agent system, and the brief's sponsor note says where agents beat code: reading narration, weighing context and writing the justification a human will read. The constraints above bound it (§2).
 
@@ -55,7 +55,7 @@ This path must be deployed, reachable and demonstrated end to end while the brie
 - A routed agent team for the working-paper entries only: a router agent, three specialist agents (account and amount, poster and timing, narration) and a writer agent, run by a deterministic orchestrator with case grouping, a code-built evidence pack and typed query catalogue, a routing guard, a code verifier, templated fallback, a fixed model allowance per case, and per-run counts of entries and model calls (brief §§6, 11).
 - Versioned re-runs with refined criteria, persisted run provenance and reproducibility checks.
 - Access control and engagement-scoped access checks; test that one engagement cannot read another's data.
-- In-region storage and processing of ledger data, including model calls and any telemetry that carries ledger content.
+- Storage and processing of ledger data in Japan across two AWS regions, Tokyo primary and Osaka standby, including model calls and any telemetry that carries ledger content, with a rehearsed failover between them.
 - A deployment and automated verification path through GitHub, with observable failures and a documented rollback procedure.
 - All six handbook deliverables and the evaluation, load and commercial evidence defined below.
 
@@ -67,11 +67,11 @@ Promote an extension into required scope only when the client or course requires
 
 - **Agent narration assessment in the ranking:** letting the narration specialist's assessment change flags or ranking would extend its work beyond the 300 selected entries. It needs an ADR, a cap on candidates that keeps the engagement under USD 40, and record-and-replay of each assessment so identical settings still give an identical ranking.
 - **Queue-based autoscaling:** scale workers with pending work, including to zero outside peak season, if that lowers normal-volume cost. Consider KEDA only if Kubernetes is justified, after comparing simpler worker and deployment options.
-- **Multi-cloud or multi-region:** only inside the client's region, and only if the course requires it or availability justifies the cost against the USD 40 ceiling; the same decision output and tested recovery apply.
+- **Multi-cloud:** a second provider in the same country, only if the course requires it or availability justifies the cost against the USD 40 ceiling; the same decision output and tested recovery apply. Multi-region hosting is already in scope (ADR-015).
 - **Zero-downtime releases:** a batch system needs no session-preserving deploys beyond the required guarantee that a deploy or worker loss neither loses nor duplicates an in-flight run's results (§5).
 - **Narration clustering with embeddings:** an optional cost line in the brief (§6); adopt it only if it measurably improves the weak-narration criterion within budget.
 
-Model-provider failover (in-region providers only), IT services and deadline-weighted scheduling remain stretch goals. No extension displaces missing evaluation, load-test, cost-model or runbook evidence.
+IT services and deadline-weighted scheduling remain stretch goals. No extension displaces missing evaluation, load-test, cost-model or runbook evidence.
 
 ### Out of scope
 
@@ -98,7 +98,7 @@ The weights below come from handbook §3. Whether the earlier four-criterion inf
 | 20% | Engineering judgement | ADRs explaining significant choices, rejected alternatives, assumptions and trade-offs, above all where the boundary between rules and agents sits, and whether routing to specialists beats a fixed chain or code-only routing |
 | 20% | Evidence | Named evaluation cases, pass rate, precision and recall against seeded anomalies, agent justification quality, known misses and load-test results that can be reproduced |
 | 15% | Commercial thinking | Sourced and dated unit prices, cost per 400,000-entry engagement against the USD 40 ceiling, normal/peak monthly costs, margins, break-even and the point where Tickmark stops being cheaper than manual selection |
-| 10% | Operability | Runbook, useful observability, behaviour when the agents' model or another dependency is down, and demonstrated rollback/recovery |
+| 10% | Operability | Runbook, useful observability, behaviour when the agents' model or another dependency is down, and demonstrated rollback, recovery and regional failover |
 | 10% | Working as a team | Elicited requirements, client questions, named component ownership and GitHub history showing each member built something |
 
 Infrastructure earns its place by supporting a client requirement and producing evidence, not by adding technologies. The handbook explicitly warns that a demonstration without evaluation, scale evidence and cost arithmetic is insufficient.
@@ -129,13 +129,13 @@ The client requires that two runs over the same ledger with the same settings pr
 - evidence references;
 - ordered ranking and shortlist of up to 300 entries.
 
-The result must be identical across repeated runs, worker counts, retries and input delivery order. If multiple providers or regions are delivered, the same contract applies across them.
+The result must be identical across repeated runs, worker counts, retries and input delivery order, and in both regions: a run resumed in the standby region after a failover gives the same result. If multiple providers are delivered, the same contract applies across them.
 
 Each run manifest pins the input snapshot, schema, criterion thresholds and weights, other engagement settings such as materiality, reference data, rule bundle, scoring version, case-grouping rules, the criterion-to-specialist routing table, the query catalogue, model and prompt versions for each agent, simulator seed where applicable and execution image. Store amounts as integer minor units and compute scores in fixed-point arithmetic, so no result depends on summation order or worker count; define timestamp handling and stable entry IDs. Stable entry IDs break ranking ties. Inputs and canonically serialized decision outputs receive SHA-256 hashes; exclude variable operational metadata such as execution timestamps from the decision hash.
 
 The routed agent team investigates and justifies the working-paper entries; it does not determine scores, criteria or ranking. Validate each routing decision and agent output against its schema, and store it with its model, provider and prompt provenance under a hash of the call's exact input, role, prompt, model, schema and catalogue versions; label generated text as such. Whenever the same hash recurs, reuse the stored output, so re-runs repeat the same routing and wording without spending the model budget again; a zero temperature setting is not relied on for repeatability. An output that fails its schema gets one repair attempt, then the template. Findings reach the writer in a fixed order, so the order in which parallel specialists finish cannot change the draft. When the agents fail, the structured evidence and a templated justification stand in. Agent failure or fallback may change wording, never the decision or evidence.
 
-The acceptance test compares a canonical decision hash across repeated runs, shuffled input, changed worker counts and worker retries. Test deployment interruption and recovery without missing or duplicating logical results. Cross-provider equality and uninterrupted releases are additional tests only if those capabilities are delivered.
+The acceptance test compares a canonical decision hash across repeated runs, shuffled input, changed worker counts and worker retries. Test deployment interruption, recovery and regional failover without missing or duplicating logical results. Cross-provider equality and uninterrupted releases are additional tests only if those capabilities are delivered.
 
 ### Named functional and adversarial cases
 
@@ -146,7 +146,7 @@ The evaluation report must give each case a stable ID, expected result and actua
 | Ordinary | Full 400,000-entry ledger; each brief criterion flags its seeded cases; every flag resolves to a source record and named criterion; an entry flagged on several criteria gets every required specialist; every justification passes the verifier or falls back to the template; working paper produced; a criteria change creates a separate run |
 | Awkward | Empty and fewer-than-300 flagged populations; tied scores; duplicate IDs; missing fields; unbalanced journals; amount precision; period-boundary timestamps; specialists that disagree; related entries grouped into one case |
 | Hostile | Malformed or oversized uploads; unauthorised engagement access; repeated submissions; adversarial narration and prompt injection aimed at the agents, including attempts to query another engagement's data |
-| Recovery | Worker termination and retry; persistence/queue outage where applicable; rollback; model-provider outage; router failure falling back to the required specialists; a case exhausting its model allowance |
+| Recovery | Worker termination and retry; persistence/queue outage where applicable; rollback; regional failover mid-run; model-provider outage; router failure falling back to the required specialists; a case exhausting its model allowance |
 
 Agree validation and rejection policy before testing awkward inputs; do not treat every unusual journal as fraud. Report passed cases divided by executed cases, and show failed, blocked and unexecuted cases separately. Record known causes, unknown causes and limitations rather than omitting failures.
 
@@ -185,17 +185,17 @@ Measure the complete path rather than only worker throughput:
 - cost per engagement during the measured test against the USD 40 ceiling, and the entries and model calls that reached the agents;
 - output correctness, identical rankings for identical settings, and engagement isolation under load.
 
-Confirm error-rate and recovery targets with the client before recording a pass. Demonstrate that all 12 concurrent engagements finish inside the limit and that none is starved. Add autoscaling and multi-provider tests only when those capabilities enter required scope; a model-provider outage is already a required recovery case (§5).
+Confirm error-rate and recovery targets with the client before recording a pass. Demonstrate that all 12 concurrent engagements finish inside the limit and that none is starved. Add autoscaling and multi-provider tests only when those capabilities enter required scope; a model-provider outage and a regional failover are already required recovery cases (§5).
 
 ### Operations
 
-Instrument run IDs and engagement context, processing duration, backlog, failures/retries, dependency health, spend per engagement, and each routing decision, agent step and tool call, without exposing ledger content; telemetry that does carry ledger data stays in the client's region. The runbook must connect failure symptoms to detection, diagnosis, recovery, rollback and cost impact, including a run on course to breach the 4-hour or USD 40 limit. Rehearse at least a worker interruption, a model-provider outage, another critical dependency outage and deployment rollback; preserve or safely resume accepted work and completed results. Record any downtime honestly rather than assuming zero-downtime delivery.
+Instrument run IDs and engagement context, processing duration, backlog, failures/retries, dependency health, spend per engagement, and each routing decision, agent step and tool call, without exposing ledger content; telemetry that does carry ledger data stays in Japan. The runbook must connect failure symptoms to detection, diagnosis, recovery, rollback and cost impact, including a run on course to breach the 4-hour or USD 40 limit. Rehearse at least a worker interruption, a model-provider outage, another critical dependency outage, a regional failover and failback, and deployment rollback; preserve or safely resume accepted work and completed results. Record any downtime honestly rather than assuming zero-downtime delivery.
 
 ### Cost and pricing
 
 The unit is one audit engagement of 400,000 entries, and USD 40 of compute and models per engagement is a hard ceiling and the binding constraint (brief §§5–6). Cost is driven by how few entries reach a model, not by how fast the system runs. Confirm whether the 3–4 re-runs share that ceiling (§7); until then, show the cost both ways.
 
-The cost model should separate fixed monthly costs from volume-dependent costs and cover the brief's line items: rules and statistical pre-filter compute over all 400,000 rows, agent model calls for routing, specialist investigation, follow-ups and justification, embeddings if used, database and query, application compute, and observability spans per engagement, plus networking/egress, queues, retries and idle or redundant infrastructure. State retention and utilisation assumptions; show normal and peak monthly workloads separately rather than treating the January–March peak as the whole year.
+The cost model should separate fixed monthly costs from volume-dependent costs and cover the brief's line items: rules and statistical pre-filter compute over all 400,000 rows, agent model calls for routing, specialist investigation, follow-ups and justification (priced per token, including the 10% premium for keeping calls in Japan), embeddings if used, database and query, application compute, and observability spans per engagement, plus networking/egress, cross-region replication, queues, retries and idle or redundant infrastructure such as the standby region. State retention and utilisation assumptions; show normal and peak monthly workloads separately rather than treating the January–March peak as the whole year.
 
 For each volume scenario, calculate:
 
@@ -205,7 +205,7 @@ For each volume scenario, calculate:
 - break-even engagements = fixed monthly cost / `(price per engagement - variable cost per engagement)` where linear assumptions apply and contribution is positive; otherwise report no finite break-even under those assumptions or use a tier-aware calculation;
 - the point at which Tickmark stops being cheaper than the people who select entries today, by comparing cost per engagement with 2–3 auditor-days of selection at a sourced rate.
 
-State how many entries reached the agents per run, how many model calls they made, and why those numbers are what they are (brief §11). Because each case's model allowance is fixed before the run, also state the worst-case run cost (cases × allowance) next to the measured cost. Every external unit price needs its source and lookup date. List missing prices as assumptions, distinguish free credits from sustainable pricing and reconcile estimates with measured load-test usage. Any multi-cloud or multi-region redundancy must show its incremental cost against the USD 40 ceiling.
+State how many entries reached the agents per run, how many model calls they made, and why those numbers are what they are (brief §11). Because each case's model allowance is fixed before the run, also state the worst-case run cost (cases × allowance) next to the measured cost. Every external unit price needs its source and lookup date. List missing prices as assumptions, distinguish free credits from sustainable pricing and reconcile estimates with measured load-test usage. The standby region, and any multi-cloud redundancy, must show its incremental cost against the USD 40 ceiling.
 
 ## 7. Client decisions and team working
 
@@ -220,21 +220,21 @@ Brief v1.0 answers the problem, the unit (one 400,000-entry engagement), batch o
 | Agree what a working paper must contain to be signed off (brief §10) | Defines the golden path's output and its acceptance |
 | Learn what engagement teams do today and why they distrust the last tool the firm bought (brief §10) | Shows which failures would make the client reject Tickmark |
 | Confirm whether the 3–4 re-runs share the USD 40 ceiling, and whether the 4-hour limit applies to each run | Decides whether each run gets USD 40 or a third to a fifth of it |
-| Define "our region", whether model inference, backups and telemetry fall under it, and how long ledgers and results are retained | Constrains the cloud region, the model provider, observability tooling and storage cost |
+| Confirm whether ledgers may be stored and processed outside Sri Lanka, in Japan as proposed, including model inference, backups and telemetry; whether AWS is acceptable; and how long ledgers and results are retained | Decides the hosting country, the model provider, observability tooling and storage cost |
 | Confirm whether an entry is a journal line or a journal header | Changes the ledger schema, the simulator and every metric |
 | Obtain normal off-peak volume | Required for normal monthly cost and break-even |
 | Ask the instructors whether the earlier four-criterion infrastructure slide applies alongside the handbook | Decides whether multi-cloud or zero-downtime is mandatory, which the data constraint then limits |
 | Assign component owners and arrange domain review | Enables accountable delivery and credible audit rationale |
 
-Keep a dated record of client questions, answers, assumptions and scope changes. For each change, record its effect on the golden path, evidence, cost and priorities. The handbook says clients respond within one working day; raise a client blocker the same day rather than silently proceeding.
+Keep a dated record of client questions, answers, assumptions and scope changes in the [client log](client-log.md). Until the client replies, each question carries the team's presumed answer, marked as presumed. For each change, record its effect on the golden path, evidence, cost and priorities. The handbook says clients respond within one working day; raise a client blocker the same day rather than silently proceeding.
 
 Each team member must own a named component and contribute implementation through GitHub. The brief names three members; assign each a concrete boundary, for example ledger simulator, criteria engine and ranking; the routed agent team, verifier and working paper; or platform, evaluation, load testing and cost model. No assignments are confirmed here. Retain a GitHub history showing individual contributions. Disclose AI assistance and ensure each owner can explain what they shipped (handbook §6).
 
 ## 8. Delivery order and completion gate
 
-1. **Ask and assume:** send the §7 questions to the client in week one, record a working assumption for each in the [ADR](adr.md), and assign owners. Only an answer that invalidates an assumption stops work.
+1. **Ask and assume:** send the §7 questions to the client in week one, record a working assumption for each in the [ADR](adr.md) and the [client log](client-log.md), and assign owners. Only an answer that invalidates an assumption stops work.
 2. **Complete one path:** build and deploy the full-scale batch path, from ledger ingestion through rules-and-statistics filtering, ranking and the routed agent team to the signable working paper, with durable evidence.
-3. **Prove it:** run the named evaluation and reproducibility cases, run 12 concurrent full-scale engagements, show every run under 4 hours and every engagement under USD 40, finish the cost arithmetic and rehearse recovery/rollback. Capture ADRs and client decisions throughout delivery, not retrospectively.
+3. **Prove it:** run the named evaluation and reproducibility cases, run 12 concurrent full-scale engagements, show every run under 4 hours and every engagement under USD 40, finish the cost arithmetic and rehearse recovery, rollback and regional failover. Capture ADRs and client decisions throughout delivery, not retrospectively.
 4. **Extend only when justified:** add client- or course-mandated capabilities before optional ones, keep every extension within the budget and data constraints, and repeat affected tests and cost calculations.
 
 Delivery is complete when the brief's six-point definition of done is met (brief §11), the deployed golden path works under peak load, all six artefacts contain evidence, failures and limitations are disclosed, AI assistance is disclosed, and ownership/client-engagement evidence is visible in GitHub. An impressive architecture alone does not satisfy this gate.
@@ -250,4 +250,4 @@ Delivery is complete when the brief's six-point definition of done is met (brief
 
 ---
 
-*Last revised 2026-09-28 against the Phase 2 Engagement Handbook, the Group 02 Client Brief v1.0 (18 Sep 2026) and the [ADR](adr.md).*
+*Last revised 2026-09-30 against the Phase 2 Engagement Handbook, the Group 02 Client Brief v1.0 (18 Sep 2026), the [ADR](adr.md) and the [client log](client-log.md).*

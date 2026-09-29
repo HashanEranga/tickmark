@@ -6,7 +6,7 @@ Tickmark's significant design choices, the alternatives we rejected and why, and
 
 ## The approach in one paragraph
 
-Code decides; agents explain. Rules and statistics score all 400,000 entries and fix the ranking before any model runs. A routed team of agents then investigates only the working-paper entries: a router agent suggests specialists, a routing guard in code guarantees the required ones, three specialists work in parallel from a shared case file, and a writer drafts the justification, which a code verifier checks. The agents are made repeatable by treating every model call as a function of its inputs: its output is validated against a schema, stored under a hash of those inputs, and replayed when the same inputs come back. The orchestrator is a fixed LangGraph graph, built on LangChain, whose branches are decided by code, so agents influence control flow only through stored, validated outputs. The [architecture](diagrams/architecture.md) and [entry investigation](diagrams/entry-investigation.md) diagrams show the same design.
+Code decides; agents explain. Rules and statistics score all 400,000 entries and fix the ranking before any model runs. A routed team of agents then investigates only the working-paper entries: a router agent suggests specialists, a routing guard in code guarantees the required ones, three specialists work in parallel from a shared case file, and a writer drafts the justification, which a code verifier checks. The agents are made repeatable by treating every model call as a function of its inputs: its output is validated against a schema, stored under a hash of those inputs, and replayed when the same inputs come back. The orchestrator is a fixed LangGraph graph, built on LangChain, whose branches are decided by code, so agents influence control flow only through stored, validated outputs. Everything that touches client ledgers, including the model, stays in Japan across two AWS regions: Tokyo runs the system and Osaka stands by. The [architecture](diagrams/architecture.md) and [entry investigation](diagrams/entry-investigation.md) diagrams show the same design.
 
 ## Decisions at a glance
 
@@ -26,10 +26,10 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 | [ADR-012](#adr-012--related-entries-grouped-into-one-case) | Related entries grouped into one case | Accepted |
 | [ADR-013](#adr-013--narration-is-untrusted-agent-tools-are-read-only) | Narration is untrusted; agent tools are read-only | Accepted |
 | [ADR-014](#adr-014--fixed-model-allowance-per-case) | Fixed model allowance per case | Accepted |
-| [ADR-015](#adr-015--one-cloud-region-no-multi-cloud-or-multi-region) | One cloud region; no multi-cloud or multi-region | Accepted, pending instructors |
+| [ADR-015](#adr-015--multi-region-in-japan-tokyo-primary-osaka-standby) | Multi-region in Japan: Tokyo primary, Osaka standby | Accepted, pending client |
 | [ADR-016](#adr-016--processing-and-storage) | Processing and storage | Proposed |
 | [ADR-017](#adr-017--orchestrator-built-with-langchain-and-langgraph) | Orchestrator built with LangChain and LangGraph | Accepted |
-| [ADR-018](#adr-018--model-provider-and-model-per-role) | Model provider and model per role | Open |
+| [ADR-018](#adr-018--claude-on-amazon-bedrock-kept-in-japan) | Claude on Amazon Bedrock, kept in Japan | Accepted, models chosen by evaluation |
 | [ADR-019](#adr-019--observability-and-delivery) | Observability and delivery | Proposed |
 | [ADR-020](#adr-020--self-set-scale-extensions-from-17-september) | Self-set scale extensions from 17 September | Superseded by the client brief |
 
@@ -266,42 +266,55 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 **Consequences:** Cost is bounded before any model call is made. Allowance values are sized in the cost model under the stricter reading of the budget (assumption A1).
 
-### ADR-015 · One cloud region; no multi-cloud or multi-region
+### ADR-015 · Multi-region in Japan: Tokyo primary, Osaka standby
 
-**Status:** Accepted, 24 Sep 2026; pending the instructors' answer on the earlier infrastructure slide
+**Status:** Accepted, 30 Sep 2026 (team decision; replaces "Everything in Sri Lanka" of 29 Sep, which had replaced "one cloud region" of 24 Sep); pending client confirmation ([client log](client-log.md) Q-06, Q-07)
 
-**Context:** Client ledgers must stay in the client's region (brief §5). Neither the brief nor the handbook requires multi-cloud, multi-region or zero-downtime deployment.
+**Context:** Client ledgers must stay in the client's region (brief §5). The team wants multi-region hosting, so that a regional outage during the January–March peak does not stop engagements, and a managed model rather than a self-hosted one. None of AWS, Azure or Google Cloud has a region in Sri Lanka, so a multi-region design has to keep ledgers in another country that the client accepts (assumption A3). As of 30 Sep 2026, Japan is the only Asian country where Amazon Bedrock keeps current Claude models' processing in-country across two regions, Tokyo and Osaka. In Mumbai, Hyderabad, Singapore, Seoul and Jakarta, Bedrock offers Claude only with global routing, which may process a call anywhere.
 
-**Decision:** Deploy everything that touches ledger data (storage, workers, model inference, backups and ledger-bearing telemetry) in one cloud region agreed with the client (assumption A3). Recovery relies on durable storage, idempotent stage outputs and resumable runs rather than a second region.
+**Decision:**
+- Everything that touches ledger data stays in Japan: storage, workers, model inference, backups, and logs or traces that contain ledger data. Code, synthetic ledgers and CI can run anywhere, because none of them is client data.
+- Tokyo (`ap-northeast-1`) is the primary region and runs all work. Osaka (`ap-northeast-3`) is a warm standby: it keeps continuously replicated copies of the run store and container images, and has the Run API and workers deployed but scaled to zero.
+- If Tokyo fails, the runbook promotes the Osaka database replica, starts the Run API and workers there and points the API's DNS name at Osaka. Each in-flight run resumes from its last checkpoint (ADR-016, ADR-017).
+- Recovery targets, to be confirmed by a failover drill: at most about a minute of lost writes, and service back within 30 minutes, so an interrupted run still finishes inside 4 hours.
+- Model calls use Bedrock's Japan inference profile, which sends each call to Tokyo or Osaka and never outside Japan (ADR-018), so a model outage in one region needs no failover.
 
 **Rejected alternatives:**
-- *Multi-region active-active:* moves ledger data outside the region unless both regions qualify, and adds cost against the USD 40 ceiling.
-- *Multi-cloud:* doubles the platform work with no client requirement behind it. Revisit only if the course requires it (scope §7).
-- *A model provider outside the region:* breaks the data constraint.
+- *Everything in Sri Lanka with a self-hosted model* (the 29 Sep design): there is no second region to fail over to, the GPU is a fixed cost, and open-weights models may write weaker justifications. It remains the fallback if the client requires Sri Lanka (Q-06, Q-08).
+- *Mumbai and Hyderabad:* the nearest regions, but Bedrock offers Claude there only with global routing, so model calls could be processed outside India.
+- *Singapore paired with another Asian region:* the same problem.
+- *Sydney and Melbourne:* Bedrock's Australia profile meets the same rules, but it is farther from Sri Lanka with no offsetting advantage.
+- *Active-active in both regions:* doubles the always-on cost and needs a database that accepts writes in both regions, for a peak of only 12 runs.
+- *Multi-cloud:* a second provider doubles the platform work, and Google's multi-region Claude endpoints cover only the US and the EU. It stays a conditional extension (scope §2).
+- *Bedrock's global endpoint:* cheaper and more available, but it may process calls outside Japan.
 
-**Consequences:** A regional outage stops runs until the region recovers, and the runbook says so. The model provider must be available in the region (ADR-018).
+**Consequences:** Ledgers leave Sri Lanka, so this design stands only if the client accepts Japan (Q-06). The standby adds a fixed monthly cost, mostly the database replica, which the cost model shows against the USD 40 ceiling (scope §6), and model calls cost 10% more than global routing. A failover can lose the last moments of replicated work. Idempotent stage outputs and replay (ADR-010) make repeating that work safe: the ranking cannot change (ADR-003), and only the wording of repeated agent steps may differ. The runbook covers failover and failback, and both are rehearsed.
 
 ### ADR-016 · Processing and storage
 
-**Status:** Proposed, 28 Sep 2026; confirm with the team and the load test
+**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan; confirm with the team and the load test
 
-**Context:** Scoring 400,000 rows with rules and statistics is small work for one machine. Most of each run's time goes on model calls, and the peak is 12 concurrent engagements.
+**Context:** Scoring 400,000 rows with rules and statistics is small work for one machine. Most of each run's time goes on model calls, and the peak is 12 concurrent engagements. Tokyo runs everything and Osaka stands by (ADR-015).
 
 **Decision:**
-- One worker process per run on a managed container service in the region, scaling to zero outside peak season, with 12 workers at peak.
-- PostgreSQL holds run state, case files, the job table and stored agent outputs. Workers claim runs with `SELECT … FOR UPDATE SKIP LOCKED`.
+- One worker process per run, as a container task on Amazon ECS with Fargate: up to 12 at peak and none when idle. Osaka runs none until a failover.
+- PostgreSQL on Amazon RDS holds run state, case files, the job table and stored agent outputs, with a cross-region read replica in Osaka. Workers claim runs with `SELECT … FOR UPDATE SKIP LOCKED`.
 - DuckDB scores each ledger snapshot inside the worker. Criteria are versioned SQL files, which keeps every rule readable and auditable.
-- Immutable ledger snapshots (Parquet) and working papers are kept in in-region object storage.
-- LangGraph's Postgres checkpointer saves each case's graph state after every node (ADR-017), and stage outputs are written idempotently under run, case and step keys, so a restarted worker resumes without losing or duplicating results.
+- Immutable ledger snapshots (Parquet) and working papers are kept in Amazon S3 in Tokyo and replicated to Osaka, and container images are replicated the same way.
+- LangGraph's Postgres checkpointer saves each case's graph state after every node (ADR-017), and stage outputs are written idempotently under run, case and step keys, so a restarted worker in either region resumes without losing or duplicating results.
 
 **Rejected alternatives:**
 - *Kubernetes with queue-based autoscaling (KEDA):* real operational load for a peak of 12 jobs. It stays a conditional extension (scope §2).
 - *Spark or another distributed engine:* 400,000 rows fit comfortably on one machine.
 - *A separate queue service:* one more moving part, when a job table can share a transaction with run state. Revisit if contention appears.
-- *A durable-workflow engine such as Temporal:* its replay model fits ADR-010 well, but it adds a stateful platform and raises data-residency questions for the payloads it stores.
-- *Serverless functions for the worker:* run-length and concurrency limits vary by provider, and warm state is lost between steps.
+- *A durable-workflow engine such as Temporal:* its replay model fits ADR-010 well, but it adds another stateful platform to run and replicate across two regions.
+- *Serverless functions:* a worst-case run takes about an hour, beyond a function's time limit (15 minutes on AWS Lambda).
+- *Aurora Global Database:* faster, managed failover, but it costs more at this size. Switch to it if the failover drill misses its targets.
 
-**Consequences:** Few moving parts to operate and explain. Rough sizing for the load test to confirm: at most 300 cases × about 10 calls gives 3,000 calls per run; at 8 concurrent calls of about 5 seconds each (assumed), that is roughly 30 minutes, well inside 4 hours. At peak, 12 runs need about 96 concurrent calls, which the provider's in-region quota must allow (ADR-018).
+**Consequences:** Few moving parts to operate and explain, and nothing runs in Osaka except the database replica until a failover. Rough sizing for the load test to confirm, assuming about 3,000 input and 600 output tokens and 5 seconds per call:
+- At most 300 cases × about 10 calls gives 3,000 calls per run. At 8 concurrent calls, a run's model work takes about 30 minutes.
+- 12 such runs would need about 3.5 million input and 0.7 million output tokens per minute. Bedrock allows 2 million input tokens per minute by default, and grants up to 5 million input and 0.5 million output on request without special approval (ADR-018).
+- Capping each run at 4 concurrent calls halves the demand, which then fits the quotas granted on request, and still finishes a worst-case run in about an hour.
 
 ### ADR-017 · Orchestrator built with LangChain and LangGraph
 
@@ -324,37 +337,49 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 - *LangChain chains on their own:* fine for single calls, but awkward for conditional routing, parallel fan-out and resuming after a crash.
 - *Conversation-driven multi-agent frameworks* (AutoGen- or CrewAI-style): control flow emerges from agents talking to each other, which conflicts with ADR-009 and ADR-010.
 
-**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain's provider integrations make the model-provider choice a configuration change (ADR-018). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside the region (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
+**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain talks to Claude on Bedrock like any other chat model, so changing the model or region is a configuration change (ADR-018). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
 
-### ADR-018 · Model provider and model per role
+### ADR-018 · Claude on Amazon Bedrock, kept in Japan
 
-**Status:** Open; needs the client's region (assumption A3) and sourced, dated prices
+**Status:** Accepted, 30 Sep 2026 (replaces "Self-hosted open-weights models in Sri Lanka" of 29 Sep); the model for each role is chosen by the agent-quality evaluation
 
-**Context:** The provider must offer inference inside the client's region, structured outputs, pinned model versions and enough quota for 12 concurrent runs. Every price must carry its source and lookup date (handbook §5).
+**Context:** Model calls carry ledger text, so they must stay in Japan (ADR-015). As of 30 Sep 2026, Amazon Bedrock serves current Claude models through its Messages API with a Japan inference profile that sends each call to Tokyo or Osaka, at a 10% premium over global routing. Anthropic's own API pins inference only to the US or globally, and Google's multi-region Claude endpoints cover only the US and the EU. Bedrock's Claude endpoint offers neither provider-side structured outputs nor the Message Batches API. Every price must carry its source and lookup date (handbook §5).
 
-**Decision so far:** For each role, use the smallest model that passes the agent-quality evaluation: router and specialists first, with the writer possibly larger. Pin exact model versions in the run manifest. Choose the provider once the region is agreed, and record prices with source and date in the cost model.
+**Decision:**
+- Call Claude through Bedrock's Messages API with the Japan inference profile, so every call is processed in Tokyo or Osaka and a model outage in one region is absorbed without a failover.
+- For each role, use the smallest model that passes the agent-quality evaluation. Start with Claude Haiku 4.5 for the router and specialists and Claude Sonnet 5 for the writer, and compare them with Sonnet 5 in every role. Before pinning a model, confirm that the Japan profile serves it.
+- Pin each role's model ID and the inference profile in the run manifest (ADR-003).
+- Pass each agent's output schema as a tool definition through LangChain's structured-output support, because the endpoint has no native structured-output mode. Code still validates every output and replays it by input hash (ADR-010).
+- Cache the fixed part of each prompt (instructions, schema and query catalogue) with prompt caching.
+- If the Japan profile fails, calls retry with backoff within the run's time limit, and then the case falls back to the template (ADR-011). Calls never fall back to the global endpoint.
 
-**Alternatives to compare:** managed model endpoints from the major clouds in the agreed region, and a self-hosted open-weights model in that region, which gives full data control but carries fixed GPU cost that sits idle outside peak season.
+**Rejected alternatives:**
+- *Self-hosted open-weights models in Sri Lanka* (the 29 Sep design): a fixed GPU cost, and possibly weaker justifications. It returns only if the client requires Sri Lanka (ADR-015).
+- *Bedrock's global endpoint:* no premium and the best availability, but calls may be processed outside Japan.
+- *Anthropic's API or Claude Platform on AWS:* inference can be pinned only to the US or globally.
+- *Google Vertex:* its multi-region endpoints cover only the US and the EU, and its single-region endpoints serve only Claude Sonnet 4.6 and older.
+- *Batch pricing:* the Message Batches API and its discount are not available on Bedrock.
 
-**Consequences:** Until this is decided, the cost model shows worst-case cost as a formula of calls, tokens and price rather than a number. Because agents use LangChain's chat-model interface (ADR-017), the final choice is a configuration change rather than a rewrite.
+**Consequences:** Model cost is per call again, with no fixed GPU. At Anthropic's list prices plus the 10% premium (list prices checked 29 Sep 2026: Haiku 4.5 at USD 1 and Sonnet 5 at USD 2 per million input tokens, USD 5 and USD 10 per million output tokens), the worst case with Haiku 4.5 in every role is about USD 20 per run: 3,000 calls of about 3,000 input and 600 output tokens (ADR-014, assumption A1). Sonnet 5 as the writer adds about USD 4, and prompt caching lowers both. The cost model replaces these estimates with Bedrock's own dated prices and measured tokens. At peak, Bedrock's per-minute token quotas limit concurrency more than runtime does (ADR-016). A first spike must confirm that LangChain works against this endpoint with short-lived AWS credentials.
 
 ### ADR-019 · Observability and delivery
 
-**Status:** Proposed, 28 Sep 2026
+**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan
 
 **Context:** The brief lists observability spans per engagement as a cost line, operability carries 10% of the handbook's marks, and the assessors review the GitHub history.
 
 **Decision:**
-- OpenTelemetry traces: one trace per run, with spans per stage and per model call, plus metrics for spend, calls, allowance use and cache hits. Spans carry IDs and hashes, never ledger text, and the telemetry backend runs in the region.
-- LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside the region. LangChain callbacks feed the OpenTelemetry traces instead.
-- GitHub Actions runs unit tests and a determinism test, in which the decision hash of a fixture ledger must match a checked-in value, then builds and deploys container images.
+- OpenTelemetry traces: one trace per run, with spans per stage and per model call, plus metrics for spend, calls, allowance use and cache hits. Spans carry IDs and hashes, never ledger text, and the telemetry backend runs in Japan.
+- Health checks on the Run API, workers, database and model calls raise an alarm that starts the failover runbook (ADR-015).
+- LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan. LangChain callbacks feed the OpenTelemetry traces instead.
+- GitHub Actions runs unit tests and a determinism test, in which the decision hash of a fixture ledger must match a checked-in value, then builds container images and deploys them to both regions through a short-lived AWS role, with no stored keys. Tests use synthetic fixtures only, so no ledger data passes through GitHub.
 - Rollback redeploys the previous image. Each run pins its image digest, so a deploy never changes a run in flight.
 
 **Rejected alternatives:**
-- *A hosted observability service outside the region, including hosted LangSmith:* ledger-bearing telemetry must stay in the region.
+- *A hosted observability service outside Japan, including hosted LangSmith:* telemetry that carries ledger data must stay in Japan.
 - *Manual deployment:* no audit trail in GitHub and no repeatable rollback.
 
-**Consequences:** The runbook can tie each failure to a span, a metric and a rollback step.
+**Consequences:** The runbook can tie each failure to a span, a metric, and a rollback or failover step.
 
 ### ADR-020 · Self-set scale extensions from 17 September
 
@@ -364,24 +389,24 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 **Why it was replaced:** the brief asks for batch runs with a working paper, sets the peak at 12 concurrent engagements, keeps data in one region and makes USD 40 per engagement the binding constraint. Keeping those extensions would have meant accumulating technology rather than choosing it.
 
-**Kept as:** conditional extensions in scope §2, adopted only if the client or the course requires them.
+**Kept as:** conditional extensions in scope §2, adopted only if the client or the course requires them. Multi-region hosting came back on 30 Sep 2026 as a team decision, inside one country (ADR-015).
 
 ## Assumptions
 
-Where the client has not told us something, we assume the following and replace each assumption once the answer arrives (scope §7).
+Where the client has not told us something, we assume the following and replace each assumption once the answer arrives (scope §7). The [client log](client-log.md) tracks each question, its presumed answer and whether the client has confirmed it.
 
 | ID | Assumption | Used by | Replace when |
 |---|---|---|---|
-| A1 | The USD 40 ceiling covers all 3–4 runs of an engagement; replay keeps repeated work free | ADR-010, ADR-014 | The client confirms how re-runs are budgeted |
-| A2 | The 4-hour limit applies to each run | ADR-016 | The client confirms |
-| A3 | "Our region" is one cloud region agreed with the client, and model inference, backups and ledger-bearing telemetry all count as processing in it | ADR-015, ADR-018, ADR-019 | The client defines the region |
-| A4 | An "entry" is one ledger row (posting line), matching the brief's 400,000 rows and 300 reviews; lines of the same journal share a case | ADR-003, ADR-012 | The client confirms the review unit |
-| A5 | The working paper is a PDF with a sign-off block (preparer, reviewer, date) and a CSV appendix of evidence | ADR-002 | The client describes a signable working paper |
-| A6 | Criteria are equally weighted until the client's risk framework arrives; weights are run settings, so changing them means a re-run, not a code change | ADR-001 | The client shares its risk framework |
-| A7 | Normal off-peak volume is unknown, so the cost model shows 1, 4 and 12 engagements a month instead of guessing one figure | ADR-014, ADR-016 | The client gives normal volume |
-| A8 | Pass thresholds for precision, recall and false positives are agreed with the client and the domain advisor before the locked evaluation | ADR-004, ADR-007 | The client says what "good enough" means |
-| A9 | The handbook governs assessment, so the earlier four-criterion infrastructure slide is not treated as binding | ADR-015, ADR-020 | The instructors answer |
-| A10 | A managed model endpoint with structured outputs and pinned versions is available in the agreed region | ADR-018 | The region is agreed and providers are checked |
+| A1 | Each run is capped at USD 30–40, and the design targets about USD 20 worst case per run, so an engagement's 3–4 runs stay under USD 40 even if the ceiling is per engagement; replay keeps repeated work free (team decision, 29 Sep 2026) | ADR-010, ADR-014, ADR-018 | The client confirms how re-runs are budgeted (Q-05) |
+| A2 | The 4-hour limit applies to each run | ADR-016 | The client confirms (Q-05) |
+| A3 | "Our region" can be a country the client approves, not only Sri Lanka, and the team proposes Japan: storage, processing, the model, backups and ledger-bearing telemetry all stay in Japan, across Tokyo and Osaka (team decision, 30 Sep 2026; replaces "Sri Lanka only" of 29 Sep) | ADR-015, ADR-016, ADR-018, ADR-019 | The client confirms the region (Q-06) |
+| A4 | An "entry" is one journal line, matching the brief's 400,000 rows and 300 reviews; lines of the same journal share a case (team decision, 29 Sep 2026) | ADR-003, ADR-012 | The client confirms the review unit (Q-09) |
+| A5 | The working paper follows the 4-page sample shared on 29 Sep 2026: a PDF with a sign-off block (preparer, reviewer, manager) and CSV appendices | ADR-002 | The client describes a signable working paper (Q-03) |
+| A6 | Criteria are equally weighted until the client's risk framework arrives; weights are run settings, so changing them means a re-run, not a code change | ADR-001 | The client shares its risk framework (Q-01) |
+| A7 | Normal off-peak volume is unknown, so the cost model shows 1, 4 and 12 engagements a month instead of guessing one figure | ADR-014, ADR-016, ADR-018 | The client gives normal volume (Q-10) |
+| A8 | Pass thresholds for precision, recall and false positives are agreed with the client and the domain advisor before the locked evaluation; the client log holds the presumed targets | ADR-004, ADR-007 | The client says what "good enough" means (Q-02) |
+| A9 | The handbook governs assessment, so the earlier four-criterion infrastructure slide is not treated as binding | ADR-015, ADR-020 | The instructors answer (I-01) |
+| A10 | The client accepts AWS, and the team runs the system and the capstone demo in its own AWS account, with Claude on Bedrock enabled in Tokyo and Osaka, on synthetic ledgers at list prices (no course credits assumed) | ADR-015, ADR-016, ADR-018 | The client (Q-07) and the instructors (I-02) answer |
 
 ## How the decisions will be tested
 
@@ -393,6 +418,8 @@ Where the client has not told us something, we assume the following and replace 
 | ADR-011 | Drafts seeded with a fake evidence ID or a wrong figure are caught before the working paper |
 | ADR-013 | Injected narration and cross-engagement queries fail safely |
 | ADR-014, ADR-016 | Measured cost stays under the pre-computed worst case, and 12 concurrent full-scale runs each finish inside 4 hours |
+| ADR-015 | A failover drill: a run interrupted in Tokyo resumes in Osaka within the recovery targets, with the same decision hash and no lost or duplicated results. A deployment check shows that no ledger data, model call or trace leaves Japan |
+| ADR-018 | Haiku 4.5 and Sonnet 5 are compared role by role on the agent-quality cases, and 12 concurrent runs stay within Bedrock's quotas and finish inside 4 hours |
 
 ## Change log
 
@@ -400,3 +427,5 @@ Where the client has not told us something, we assume the following and replace 
 - **24 Sep 2026:** client brief adopted. ADR-001, ADR-002, ADR-004, ADR-005, ADR-007, ADR-009 and ADR-011 to ADR-015 recorded. The agent design moved from a single model step to a fixed chain (ADR-006), then to the routed team (ADR-007).
 - **28 Sep 2026:** this record created. Exact arithmetic (ADR-003), the evidence pack and query catalogue (ADR-008), and replay by input hash (ADR-010) added. Platform proposals (ADR-016 to ADR-019) recorded for team confirmation.
 - **28 Sep 2026, later:** the team chose LangChain for the orchestrator. ADR-017 now builds it as a LangGraph graph, the plain-Python proposal became a rejected alternative, and ADR-008, ADR-010, ADR-016, ADR-018 and ADR-019 were updated to match.
+- **29 Sep 2026:** the team set the region to Sri Lanka, where no major cloud provider or managed Claude endpoint can keep processing, and presumed answers to the open client questions.
+- **30 Sep 2026:** ADR-015 first put everything in Sri Lanka, with self-hosted open-weights models in ADR-018. The team rejected that the same day in favour of multi-region hosting with a managed model: ADR-015 now uses two AWS regions in Japan, Tokyo primary and Osaka standby, and ADR-018 uses Claude on Amazon Bedrock through its Japan profile. ADR-016, ADR-017, ADR-019 and ADR-020 were updated to match, and the Sri Lankan design became the fallback if the client requires Sri Lanka. Assumptions A1, A3, A4 and A10 hold the presumed answers, which are tracked in the new [client log](client-log.md).
