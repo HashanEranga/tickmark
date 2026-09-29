@@ -15,7 +15,7 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 | [ADR-001](#adr-001--code-decides-flags-and-ranking-agents-only-explain) | Code decides flags and ranking; agents only explain | Accepted |
 | [ADR-002](#adr-002--batch-runs-that-end-in-a-signable-working-paper) | Batch runs that end in a signable working paper | Accepted |
 | [ADR-003](#adr-003--exact-reproducible-ranking-under-a-pinned-run-manifest) | Exact, reproducible ranking under a pinned run manifest | Accepted |
-| [ADR-004](#adr-004--full-scale-synthetic-ledger-with-seeded-anomalies) | Full-scale synthetic ledger with seeded anomalies | Accepted |
+| [ADR-004](#adr-004--full-scale-synthetic-ledgers-checked-against-public-datasets) | Full-scale synthetic ledgers, checked against public datasets | Accepted |
 | [ADR-005](#adr-005--agents-see-only-the-working-paper-entries) | Agents see only the working-paper entries | Accepted |
 | [ADR-006](#adr-006--fixed-agent-chain) | Fixed agent chain | Superseded by ADR-007 |
 | [ADR-007](#adr-007--routed-agent-team-with-a-code-routing-guard) | Routed agent team with a code routing guard | Accepted, pending evaluation |
@@ -86,20 +86,24 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 
 **Consequences:** The acceptance test compares decision hashes across repeated runs, shuffled input, changed worker counts and retries. Any change to scoring is a new rule-bundle version and a new run, never an edit to an old one.
 
-### ADR-004 · Full-scale synthetic ledger with seeded anomalies
+### ADR-004 · Full-scale synthetic ledgers, checked against public datasets
 
-**Status:** Accepted, 24 Sep 2026
+**Status:** Accepted, 24 Sep 2026; updated 30 Sep 2026 (two business profiles, and public datasets as an external check)
 
-**Context:** Real client data is out of scope. The brief asks for a full-scale synthetic ledger with seeded anomalies, so that precision and recall can be measured, and does not accept a system proven only on a few thousand rows (brief §7).
+**Context:** Real client data is out of scope. The brief asks for a full-scale synthetic ledger with seeded anomalies, so that precision and recall can be measured, and does not accept a system proven only on a few thousand rows (brief §7). Two labelled public datasets exist: a synthetic ledger from Gronewald et al. (2024), and real SAP ledgers with injected anomalies from Schreyer et al. (2017), which have no users, times or narration.
 
-**Decision:** Build a versioned ledger simulator that generates 400,000 entries with a realistic chart of accounts (retail first), posting patterns and period-end behaviour, and seeds known anomaly scenarios. Development and locked test scenarios are kept separate. Ground-truth labels are stored apart from the ledger and are never visible to scoring or to the agents.
+**Decision:**
+- Build a versioned ledger simulator that generates 400,000 journal lines per ledger for two business profiles, retail first and a second chosen by the team, with realistic charts of accounts, posting patterns and period-end behaviour.
+- Seed anomaly scenarios drawn from known fraud patterns, each tagged with the ISA 240 warning signs it shows, and add legitimate entries that look suspicious.
+- The team member who seeds scenarios does not write the criteria. Development and locked test scenarios are kept separate. Ground-truth labels are stored apart from the ledger and are never visible to scoring or to the agents.
+- Run the frozen pipeline on the two public datasets as an external check, reported separately and without a pass mark ([evaluation plan](evaluation-plan.md)).
 
 **Rejected alternatives:**
-- *Public or sample ledgers:* none exist at this scale with a known answer for every row.
+- *Public datasets as the main evaluation:* their labels were not designed around ISA 240's warning signs, and the SAP ledgers lack users, times and narration, so three of the five criteria cannot run on them.
 - *Small ledgers extrapolated to full size:* the brief rejects results that are projected rather than demonstrated.
 - *Tuning and evaluating on the same scenarios:* overfits; the locked test set prevents it.
 
-**Consequences:** Results show performance on our scenarios, not real-world fraud detection, and the evaluation report says so. The domain advisor reviews the scenarios for realism.
+**Consequences:** Results show performance on our scenarios, not real-world fraud detection, and the evaluation report says so. The external datasets show how the rules behave on ledgers the team did not design, including real business entries in the SAP data. The domain advisor reviews the scenarios for realism.
 
 ### ADR-005 · Agents see only the working-paper entries
 
@@ -393,7 +397,7 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 ## Assumptions
 
-Where the client has not told us something, we assume the following and replace each assumption once the answer arrives (scope §7). The [client log](client-log.md) tracks each question, its presumed answer and whether the client has confirmed it.
+Where the client has not told us something, the team decides and records the decision below. The [client log](client-log.md) tracks each question, the team's decision, whether it is sent to the client or the instructors to confirm, and any reply. A decision is replaced only if a reply contradicts it (scope §7).
 
 | ID | Assumption | Used by | Replace when |
 |---|---|---|---|
@@ -404,7 +408,7 @@ Where the client has not told us something, we assume the following and replace 
 | A5 | The working paper follows the 4-page sample shared on 29 Sep 2026: a PDF with a sign-off block (preparer, reviewer, manager) and CSV appendices | ADR-002 | The client describes a signable working paper (Q-03) |
 | A6 | Criteria are equally weighted until the client's risk framework arrives; weights are run settings, so changing them means a re-run, not a code change | ADR-001 | The client shares its risk framework (Q-01) |
 | A7 | Normal off-peak volume is unknown, so the cost model shows 1, 4 and 12 engagements a month instead of guessing one figure | ADR-014, ADR-016, ADR-018 | The client gives normal volume (Q-10) |
-| A8 | Pass thresholds for precision, recall and false positives are agreed with the client and the domain advisor before the locked evaluation; the client log holds the presumed targets | ADR-004, ADR-007 | The client says what "good enough" means (Q-02) |
+| A8 | Pass thresholds for precision, recall and false positives are set by the team before the locked evaluation and sent to the client to confirm; the client log and the [evaluation plan](evaluation-plan.md) hold them | ADR-004, ADR-007 | The client says what "good enough" means (Q-02) |
 | A9 | The handbook governs assessment, so the earlier four-criterion infrastructure slide is not treated as binding | ADR-015, ADR-020 | The instructors answer (I-01) |
 | A10 | The client accepts AWS, and the team runs the system and the capstone demo in its own AWS account, with Claude on Bedrock enabled in Tokyo and Osaka, on synthetic ledgers at list prices (no course credits assumed) | ADR-015, ADR-016, ADR-018 | The client (Q-07) and the instructors (I-02) answer |
 
@@ -413,6 +417,7 @@ Where the client has not told us something, we assume the following and replace 
 | Decision | Evidence that confirms or overturns it |
 |---|---|
 | ADR-003 | Identical decision hashes across repeated runs, shuffled input, changed worker counts and retries |
+| ADR-004 | The locked synthetic test set meets the pass thresholds, and the same frozen pipeline is run on the two public datasets and reported separately ([evaluation plan](evaluation-plan.md)) |
 | ADR-007 | Routed team against the fixed chain, code-only routing and a single agent, on the same entries and budget |
 | ADR-010 | A repeat run with identical settings makes no model calls and reproduces the working paper |
 | ADR-011 | Drafts seeded with a fake evidence ID or a wrong figure are caught before the working paper |
@@ -429,3 +434,4 @@ Where the client has not told us something, we assume the following and replace 
 - **28 Sep 2026, later:** the team chose LangChain for the orchestrator. ADR-017 now builds it as a LangGraph graph, the plain-Python proposal became a rejected alternative, and ADR-008, ADR-010, ADR-016, ADR-018 and ADR-019 were updated to match.
 - **29 Sep 2026:** the team set the region to Sri Lanka, where no major cloud provider or managed Claude endpoint can keep processing, and presumed answers to the open client questions.
 - **30 Sep 2026:** ADR-015 first put everything in Sri Lanka, with self-hosted open-weights models in ADR-018. The team rejected that the same day in favour of multi-region hosting with a managed model: ADR-015 now uses two AWS regions in Japan, Tokyo primary and Osaka standby, and ADR-018 uses Claude on Amazon Bedrock through its Japan profile. ADR-016, ADR-017, ADR-019 and ADR-020 were updated to match, and the Sri Lankan design became the fallback if the client requires Sri Lanka. Assumptions A1, A3, A4 and A10 hold the presumed answers, which are tracked in the new [client log](client-log.md).
+- **30 Sep 2026, later:** the team decided every open question itself, because the demo and evaluation use only synthetic ledgers; questions to the client and the instructors are still sent as confirmations ([client log](client-log.md)). ADR-004 now covers two business profiles and runs two public datasets as an external check, set out in the new [evaluation plan](evaluation-plan.md).

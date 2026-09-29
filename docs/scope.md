@@ -16,7 +16,7 @@ The brief confirms Tickmark's problem: ranking journal entries for ISA 240 testi
 | Runtime | Under 4 hours per engagement, start to finish | Measured end to end at full scale, including at peak concurrency |
 | Traceability | Every flag resolves to a source record and a named criterion; an unexplainable flag is worse than none | No flag is emitted without its criterion and source record, and a code verifier rejects any justification that cites evidence the run does not hold |
 | Determinism | The same ledger and settings produce the same ranking, and the client's reviewers will check | Ranking is reproducible from a pinned run manifest and is not decided by the agents (§§2, 5) |
-| Data | Client ledgers are confidential and stay in the client's region | No cloud provider has a region in Sri Lanka, so the team proposes Japan, pending the client (§7): storage, processing, the model and telemetry that carry ledger data stay in Japan, across two regions (ADR-015, ADR-018) |
+| Data | Client ledgers are confidential and stay in the client's region | No cloud provider has a region in Sri Lanka, so the team has chosen Japan, for the client to confirm (§7): storage, processing, the model and telemetry that carry ledger data stay in Japan, across two regions (ADR-015, ADR-018) |
 
 Neither the handbook nor the brief requires multi-cloud, multi-region, Kubernetes, continuous monitoring or zero-downtime deployment. The team has chosen multi-region hosting with a managed model, so that a regional outage in peak season does not stop engagements. No major cloud provider has a region in Sri Lanka, so the team proposes Japan, the only Asian country where Claude on Amazon Bedrock keeps processing in-country across two regions: Tokyo runs the system and Osaka stands by (ADR-015, ADR-018). The client is asked to confirm this (§7, [client log](client-log.md) Q-06). Retain the other capabilities only as conditional extensions (§2).
 
@@ -49,7 +49,7 @@ This path must be deployed, reachable and demonstrated end to end while the brie
 
 ### In scope for the first complete delivery
 
-- Batch journal-entry risk ranking over a full-scale synthetic ledger. A retail chart of accounts is the first simulator profile; this is a team choice, as the brief does not fix an industry.
+- Batch journal-entry risk ranking over full-scale synthetic ledgers. The simulator has two business profiles, retail first and a second chosen by the team; the brief does not fix an industry.
 - Versioned synthetic ledger generation at 400,000 entries with a realistic chart of accounts, posting patterns, period-end behaviour and seeded anomalies (brief §7), plus input validation and documented rejection behaviour.
 - A rules-and-statistics pre-filter over every entry covering the brief's criteria, deterministic ranking and a working paper of up to 300 entries.
 - A routed agent team for the working-paper entries only: a router agent, three specialist agents (account and amount, poster and timing, narration) and a writer agent, run by a deterministic orchestrator with case grouping, a code-built evidence pack and typed query catalogue, a routing guard, a code verifier, templated fallback, a fixed model allowance per case, and per-run counts of entries and model calls (brief §§6, 11).
@@ -152,9 +152,9 @@ Agree validation and rejection policy before testing awkward inputs; do not trea
 
 ### Detection quality
 
-Use a versioned ledger simulator with separate development and locked test scenarios, generating every evaluation ledger at the full 400,000 entries; results on a few thousand rows do not count (brief §7). Ground truth distinguishes fraud typology, injected scenario and affected journal entries. Freeze rules and scoring choices before the locked evaluation, and record any later tuning as a new evaluation version.
+Use a versioned ledger simulator with separate development and locked test scenarios, generating every evaluation ledger at the full 400,000 entries; results on a few thousand rows do not count (brief §7). Ground truth distinguishes fraud typology, injected scenario and affected journal entries. Freeze rules and scoring choices before the locked evaluation, and record any later tuning as a new evaluation version. The [evaluation plan](evaluation-plan.md) sets out the ledgers, metrics and pass thresholds, and runs the frozen pipeline on two public datasets as a separately reported external check.
 
-**Benchmark (brief §§1–2):** 400,000 entries with a review capacity of about 300, both set by the client. Confirm the unit of an entry (journal header versus posting line), because the brief uses rows and entries interchangeably.
+**Benchmark (brief §§1–2):** 400,000 entries with a review capacity of about 300, both set by the client. The brief uses rows and entries interchangeably; the team counts an entry as one journal line ([client log](client-log.md) Q-09).
 
 Report:
 
@@ -166,7 +166,7 @@ Report:
 
 For populations below 300, use the actual shortlist size and label the effective cutoff. Report undefined metrics explicitly when their denominator is zero. Compare with random, value-based and simple rule-based baselines using the same population and review budget. Store simulator version, seed, configuration and ledger hash; document synthetic-data generation and do not expose ground-truth labels to scoring.
 
-Synthetic results demonstrate performance on the defined scenarios, not general real-world fraud-detection accuracy. Quality thresholds remain open: the brief has not said how many false positives a team will tolerate (brief §10). Agree them before the locked evaluation; do not invent a passing target after seeing the results.
+Synthetic results demonstrate performance on the defined scenarios, not general real-world fraud-detection accuracy. The brief has not said how many false positives a team will tolerate (brief §10), so the pass thresholds are a team decision, set before the locked evaluation and sent to the client to confirm (client log Q-02). Do not invent a passing target after seeing the results.
 
 Evaluate the agent team separately from detection: report the verifier pass rate, the template fallback rate, how often the narration specialist agrees with the seeded weak-narration cases, how often a specialist the router added finds something the required ones missed, and a sampled review of justifications by the domain advisor. Compare the routed team with a fixed chain, code-only routing and a single-agent baseline on the same entries and budget; if the router rarely adds a useful finding, choose code-only routing.
 
@@ -209,11 +209,11 @@ State how many entries reached the agents per run, how many model calls they mad
 
 ## 7. Client decisions and team working
 
-The handbook and the brief both assess the questions asked as well as the system built (handbook §§3–4, brief §10). Use the standing client channel to resolve the following; do not mark them answered without a recorded response.
+The handbook and the brief both assess the questions asked as well as the system built (handbook §§3–4, brief §10). Because the demo and evaluation use only synthetic ledgers, the team decides each question below and builds on its decision. Send those the [client log](client-log.md) marks for confirmation through the standing client channel, and do not mark any confirmed without a recorded response.
 
 Brief v1.0 answers the problem, the unit (one 400,000-entry engagement), batch operation with a working-paper output, review capacity (about 300), peak volume (12 concurrent engagements, January–March), re-runs (3–4 per engagement), the 4-hour and USD 40 limits, and the determinism, traceability and data requirements.
 
-| Open decision | Why it blocks commitment |
+| Question | Why it matters |
 |---|---|
 | Obtain the client's risk framework: which ISA 240 criteria it weights most heavily, and how materiality sets thresholds (brief §10) | Sets criterion weights, and therefore the ranking |
 | Agree what "good enough" means, including how many false positives a team will tolerate (brief §10) | Sets the evaluation pass thresholds |
@@ -226,13 +226,13 @@ Brief v1.0 answers the problem, the unit (one 400,000-entry engagement), batch o
 | Ask the instructors whether the earlier four-criterion infrastructure slide applies alongside the handbook | Decides whether multi-cloud or zero-downtime is mandatory, which the data constraint then limits |
 | Assign component owners and arrange domain review | Enables accountable delivery and credible audit rationale |
 
-Keep a dated record of client questions, answers, assumptions and scope changes in the [client log](client-log.md). Until the client replies, each question carries the team's presumed answer, marked as presumed. For each change, record its effect on the golden path, evidence, cost and priorities. The handbook says clients respond within one working day; raise a client blocker the same day rather than silently proceeding.
+Keep a dated record of questions, team decisions, replies and scope changes in the [client log](client-log.md). For each change, record its effect on the golden path, evidence, cost and priorities. The handbook says clients respond within one working day; raise a client blocker the same day rather than silently proceeding.
 
 Each team member must own a named component and contribute implementation through GitHub. The brief names three members; assign each a concrete boundary, for example ledger simulator, criteria engine and ranking; the routed agent team, verifier and working paper; or platform, evaluation, load testing and cost model. No assignments are confirmed here. Retain a GitHub history showing individual contributions. Disclose AI assistance and ensure each owner can explain what they shipped (handbook §6).
 
 ## 8. Delivery order and completion gate
 
-1. **Ask and assume:** send the §7 questions to the client in week one, record a working assumption for each in the [ADR](adr.md) and the [client log](client-log.md), and assign owners. Only an answer that invalidates an assumption stops work.
+1. **Decide and confirm:** record the team's decision on each §7 question in the [ADR](adr.md) and the [client log](client-log.md), send those marked for confirmation in week one, and assign owners. Only a reply that contradicts a decision changes the plan.
 2. **Complete one path:** build and deploy the full-scale batch path, from ledger ingestion through rules-and-statistics filtering, ranking and the routed agent team to the signable working paper, with durable evidence.
 3. **Prove it:** run the named evaluation and reproducibility cases, run 12 concurrent full-scale engagements, show every run under 4 hours and every engagement under USD 40, finish the cost arithmetic and rehearse recovery, rollback and regional failover. Capture ADRs and client decisions throughout delivery, not retrospectively.
 4. **Extend only when justified:** add client- or course-mandated capabilities before optional ones, keep every extension within the budget and data constraints, and repeat affected tests and cost calculations.
@@ -250,4 +250,4 @@ Delivery is complete when the brief's six-point definition of done is met (brief
 
 ---
 
-*Last revised 2026-09-30 against the Phase 2 Engagement Handbook, the Group 02 Client Brief v1.0 (18 Sep 2026), the [ADR](adr.md) and the [client log](client-log.md).*
+*Last revised 2026-09-30 against the Phase 2 Engagement Handbook, the Group 02 Client Brief v1.0 (18 Sep 2026), the [ADR](adr.md), the [client log](client-log.md) and the [evaluation plan](evaluation-plan.md).*
