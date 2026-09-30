@@ -34,7 +34,7 @@ The client's reviewers will re-run the same ledger and expect the same ranking, 
 
 **Scope:** one audit procedure, done properly — ISA 240 journal entry testing, as a batch system that produces a working paper. Not a full audit platform, and not a verdict on whether fraud occurred. Constraints, boundaries and assessment mapping: [docs/scope.md](docs/scope.md).
 
-**Diagrams:** [architecture](docs/diagrams/architecture.md) shows one batch run end to end, and [entry investigation](docs/diagrams/entry-investigation.md) shows how the routed agent team handles one flagged entry.
+**Diagrams:** [architecture](docs/diagrams/architecture.md) shows one batch run end to end, and [entry investigation](docs/diagrams/entry-investigation.md) shows how the routed agent team handles one flagged entry. The C4 views show the [system context](docs/diagrams/c4-context.md), the [containers](docs/diagrams/c4-containers.md) and the [cloud deployment](docs/diagrams/c4-deployment.md).
 
 **Decisions:** the [architecture decision record](docs/adr.md) lists every significant choice, the alternatives we rejected and the assumptions we are working on until the client answers.
 
