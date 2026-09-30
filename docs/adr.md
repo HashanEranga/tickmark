@@ -89,22 +89,22 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 
 ### ADR-004 · Full-scale synthetic ledgers, checked against public datasets
 
-**Status:** Accepted, 24 Sep 2026; updated 30 Sep 2026 (two business profiles, and public datasets as an external check)
+**Status:** Accepted, 24 Sep 2026; updated 30 Sep 2026 (retail and wholesale trading profiles, and public datasets as an external check)
 
-**Context:** Real client data is out of scope. The brief asks for a full-scale synthetic ledger with seeded anomalies, so that precision and recall can be measured, and does not accept a system proven only on a few thousand rows (brief §7). Two labelled public datasets exist: a synthetic ledger from Gronewald et al. (2024), and real SAP ledgers with injected anomalies from Schreyer et al. (2017), which have no users, times or narration.
+**Context:** Real client data is out of scope. The brief asks for a full-scale synthetic ledger with seeded anomalies, so that precision and recall can be measured, and does not accept a system proven only on a few thousand rows (brief §7). Two labelled public datasets were checked on 30 Sep 2026: a synthetic ledger of a garden-tools trading company from Gronewald et al. (2024), not yet available for download, and the lab dataset for Schreyer et al. (2017), which is synthetic payments data relabelled with SAP-style fields and has no users, times or narration.
 
 **Decision:**
-- Build a versioned ledger simulator that generates 400,000 journal lines per ledger for two business profiles, retail first and a second chosen by the team, with realistic charts of accounts, posting patterns and period-end behaviour.
+- Build a versioned ledger simulator that generates 400,000 journal lines per ledger for two business profiles, retail and wholesale trading, the second matching the company in the Gronewald et al. dataset, with realistic charts of accounts, posting patterns and period-end behaviour.
 - Seed anomaly scenarios drawn from known fraud patterns, each tagged with the ISA 240 warning signs it shows, and add legitimate entries that look suspicious.
 - The team member who seeds scenarios does not write the criteria. Development and locked test scenarios are kept separate. Ground-truth labels are stored apart from the ledger and are never visible to scoring or to the agents.
 - Run the frozen pipeline on the two public datasets as an external check, reported separately and without a pass mark ([evaluation plan](evaluation-plan.md)).
 
 **Rejected alternatives:**
-- *Public datasets as the main evaluation:* their labels were not designed around ISA 240's warning signs, and the SAP ledgers lack users, times and narration, so three of the five criteria cannot run on them.
+- *Public datasets as the main evaluation:* their labels were not designed around ISA 240's warning signs, the Schreyer lab dataset lacks users, times and narration, so three of the five criteria cannot run on it, and the Gronewald et al. data is not yet public.
 - *Small ledgers extrapolated to full size:* the brief rejects results that are projected rather than demonstrated.
 - *Tuning and evaluating on the same scenarios:* overfits; the locked test set prevents it.
 
-**Consequences:** Results show performance on our scenarios, not real-world fraud detection, and the evaluation report says so. The external datasets show how the rules behave on ledgers the team did not design, including real business entries in the SAP data. The domain advisor reviews the scenarios for realism.
+**Consequences:** Results show performance on our scenarios, not real-world fraud detection, and the evaluation report says so. The external datasets show how the rules behave on ledgers the team did not design; neither contains real business entries. The domain advisor reviews the scenarios for realism.
 
 ### ADR-005 · Agents see only the working-paper entries
 
@@ -466,3 +466,4 @@ Where the client has not told us something, the team decides and records the dec
 - **30 Sep 2026:** ADR-015 first put everything in Sri Lanka, with self-hosted open-weights models in ADR-018. The team rejected that the same day in favour of multi-region hosting with a managed model: ADR-015 now uses two AWS regions in Japan, Tokyo primary and Osaka standby, and ADR-018 uses Claude on Amazon Bedrock through its Japan profile. ADR-016, ADR-017, ADR-019 and ADR-020 were updated to match, and the Sri Lankan design became the fallback if the client requires Sri Lanka. Assumptions A1, A3, A4 and A10 hold the presumed answers, which are tracked in the new [client log](client-log.md).
 - **30 Sep 2026, later:** the team decided every open question itself, because the demo and evaluation use only synthetic ledgers; questions to the client and the instructors are still sent as confirmations ([client log](client-log.md)). ADR-004 now covers two business profiles and runs two public datasets as an external check, set out in the new [evaluation plan](evaluation-plan.md).
 - **30 Sep 2026, branch flow:** the team adopted `develop` and `main` branches, with `develop` as GitHub's default branch and a deploy to the cloud on every merge into `main` (ADR-019), and local development with Docker and Ollama models (ADR-021). The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
+- **30 Sep 2026, datasets:** the second business profile is wholesale trading, to match the company in the Gronewald et al. dataset. The Schreyer et al. lab dataset turned out to be synthetic payments data relabelled with SAP-style fields, and the Gronewald et al. data is not yet public, so ADR-004 and the [evaluation plan](evaluation-plan.md) were corrected.

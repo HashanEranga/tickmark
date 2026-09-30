@@ -49,7 +49,7 @@ This path must be deployed, reachable and demonstrated end to end while the brie
 
 ### In scope for the first complete delivery
 
-- Batch journal-entry risk ranking over full-scale synthetic ledgers. The simulator has two business profiles, retail first and a second chosen by the team; the brief does not fix an industry.
+- Batch journal-entry risk ranking over full-scale synthetic ledgers. The simulator has two business profiles, retail and wholesale trading; the brief does not fix an industry.
 - Versioned synthetic ledger generation at 400,000 entries with a realistic chart of accounts, posting patterns, period-end behaviour and seeded anomalies (brief §7), plus input validation and documented rejection behaviour.
 - A rules-and-statistics pre-filter over every entry covering the brief's criteria, deterministic ranking and a working paper of up to 300 entries.
 - A routed agent team for the working-paper entries only: a router agent, three specialist agents (account and amount, poster and timing, narration) and a writer agent, run by a deterministic orchestrator with case grouping, a code-built evidence pack and typed query catalogue, a routing guard, a code verifier, templated fallback, a fixed model allowance per case, and per-run counts of entries and model calls (brief §§6, 11).
