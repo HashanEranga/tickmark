@@ -123,13 +123,13 @@ It is delivered as a PDF with CSV appendices.
 
 ### Q-06 · Region
 
-**Question:** Must ledgers stay in Sri Lanka, or may they be stored and processed in another country the firm approves? We propose Japan, across two cloud regions (Tokyo and Osaka), covering storage, processing, the AI model, backups and logs.
+**Question:** Must ledgers stay in Sri Lanka, or may they be stored and processed in another country the firm approves? We propose India, across two cloud regions (Mumbai and Hyderabad), covering storage, processing, the AI model, backups and logs.
 
 **Why it matters:** no major cloud provider has a region in Sri Lanka, so multi-region hosting with a managed AI model is possible only outside it. "Sri Lanka only" means a self-hosted model at a single site.
 
-**Raised:** 24 Sep 2026 · **Status:** Team decision (30 Sep 2026; replaces the 29 Sep answer "Sri Lanka only") · **Send:** yes, as "please confirm"
+**Raised:** 24 Sep 2026 · **Status:** Team decision (30 Sep 2026; replaces Japan, chosen earlier the same day, and the 29 Sep answer "Sri Lanka only") · **Send:** yes, as "please confirm"
 
-**Team decision:** Japan is acceptable. Everything that touches client ledgers stays in Japan: storage, processing, the AI model, backups, and logs or traces that contain ledger data. Nothing is processed in any other country.
+**Team decision:** India is acceptable. Everything that touches client ledgers stays in India: storage, processing, the AI model, backups, and logs or traces that contain ledger data. Nothing is processed in any other country.
 
 **Affects:** A3, ADR-015, ADR-016, ADR-018, ADR-019.
 
@@ -147,13 +147,13 @@ It is delivered as a PDF with CSV appendices.
 
 ### Q-08 · Masked text abroad
 
-**Question:** Only if ledgers must stay in Sri Lanka (Q-06): would the firm allow masked text, with no names, amounts or account numbers, to be processed by an AI model in Japan?
+**Question:** Only if ledgers must stay in Sri Lanka (Q-06): would the firm allow masked text, with no names, amounts or account numbers, to be processed by an AI model in India?
 
 **Why it matters:** a yes keeps a managed model while the ledgers stay in Sri Lanka. A no means self-hosting the model in Sri Lanka.
 
-**Raised:** 29 Sep 2026 · **Status:** Team decision (30 Sep 2026) · **Send:** no; needed only if the client rejects Japan (Q-06)
+**Raised:** 29 Sep 2026 · **Status:** Team decision (30 Sep 2026) · **Send:** no; needed only if the client rejects India (Q-06)
 
-**Team decision:** not needed while the client accepts Japan (Q-06). If it rejects Japan, the answer is no, and we fall back to the self-hosted Sri Lankan design (ADR-015).
+**Team decision:** not needed while the client accepts India (Q-06). If it rejects India, the answer is no, and we fall back to the self-hosted Sri Lankan design (ADR-015).
 
 **Affects:** ADR-015, ADR-018.
 
@@ -199,7 +199,7 @@ It is delivered as a PDF with CSV appendices.
 
 **Question:** Does the earlier four-criterion slide (multi-cloud, autoscaling under 10× load, observability and CI/CD, zero-downtime with LLM fallback) still apply alongside the handbook?
 
-**Why it matters:** the design is already multi-region within Japan (ADR-015). If the slide applies, multi-cloud and zero-downtime releases would also be required.
+**Why it matters:** the design is already multi-region within India (ADR-015). If the slide applies, multi-cloud and zero-downtime releases would also be required.
 
 **Raised:** 24 Sep 2026 · **Status:** Team decision (30 Sep 2026) · **Send:** yes, to the instructors
 
@@ -209,9 +209,9 @@ It is delivered as a PDF with CSV appendices.
 
 ### I-02 · Demo cloud account
 
-**Question:** May the demo run in the team's own AWS account, in Tokyo and Osaka, using synthetic ledgers only, and does the course provide cloud credits?
+**Question:** May the demo run in the team's own AWS account, in Mumbai and Hyderabad, using synthetic ledgers only, and does the course provide cloud credits?
 
-**Why it matters:** the demo needs Claude on Bedrock in Japan plus a standby region, and the cost model must keep credits apart from real prices.
+**Why it matters:** the demo needs Claude on Bedrock in India plus a standby region, and the cost model must keep credits apart from real prices.
 
 **Raised:** 30 Sep 2026 · **Status:** Team decision (30 Sep 2026; replaces the 29 Sep question about a team member's GPU machine) · **Send:** yes, to the instructors
 

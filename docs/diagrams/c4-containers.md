@@ -16,7 +16,7 @@ flowchart TB
         otel["Telemetry<br/>[OpenTelemetry]<br/>traces and metrics,<br/>never ledger text"]
     end
 
-    model["Claude on Amazon Bedrock<br/>[external system]<br/>Japan profile"]
+    model["Claude on Amazon Bedrock<br/>[external system]<br/>India profile"]
 
     team -->|"① submits ledger<br/>+ settings"| api
     reviewer -->|"⑥ downloads<br/>working paper"| api
@@ -40,5 +40,5 @@ flowchart TB
 
 - **Run worker:** one per run, started when a run is queued and stopped when it finishes. It holds the rules engine (DuckDB with versioned SQL criteria), the routed agent team (a LangGraph graph) and the verifier from [architecture.md](architecture.md) (ADR-016, ADR-017).
 - **Run store:** the single "Run store" of [architecture.md](architecture.md) is two containers here: a database for state and object storage for ledgers and working papers.
-- **Model calls** leave only from the worker, and only to Bedrock's Japan profile; agents have no other network access (ADR-013).
+- **Model calls** leave only from the worker, and only to Bedrock's India profile; agents have no other network access (ADR-013).
 - **Local development** runs the same containers in Docker Compose, with Ollama models in place of Bedrock (ADR-021).

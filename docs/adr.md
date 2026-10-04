@@ -6,7 +6,7 @@ Tickmark's significant design choices, the alternatives we rejected and why, and
 
 ## The approach in one paragraph
 
-Code decides; agents explain. Rules and statistics score all 400,000 entries and fix the ranking before any model runs. A routed team of agents then investigates only the working-paper entries: a router agent suggests specialists, a routing guard in code guarantees the required ones, three specialists work in parallel from a shared case file, and a writer drafts the justification, which a code verifier checks. The agents are made repeatable by treating every model call as a function of its inputs: its output is validated against a schema, stored under a hash of those inputs, and replayed when the same inputs come back. The orchestrator is a fixed LangGraph graph, built on LangChain, whose branches are decided by code, so agents influence control flow only through stored, validated outputs. Everything that touches client ledgers, including the model, stays in Japan across two AWS regions: Tokyo runs the system and Osaka stands by. The [architecture](diagrams/architecture.md) and [entry investigation](diagrams/entry-investigation.md) diagrams, and the C4 [context](diagrams/c4-context.md), [containers](diagrams/c4-containers.md) and [deployment](diagrams/c4-deployment.md) views, show the same design.
+Code decides; agents explain. Rules and statistics score all 400,000 entries and fix the ranking before any model runs. A routed team of agents then investigates only the working-paper entries: a router agent suggests specialists, a routing guard in code guarantees the required ones, three specialists work in parallel from a shared case file, and a writer drafts the justification, which a code verifier checks. The agents are made repeatable by treating every model call as a function of its inputs: its output is validated against a schema, stored under a hash of those inputs, and replayed when the same inputs come back. The orchestrator is a fixed LangGraph graph, built on LangChain, whose branches are decided by code, so agents influence control flow only through stored, validated outputs. Everything that touches client ledgers, including the model, stays in India across two AWS regions: Mumbai runs the system and Hyderabad stands by. The [architecture](diagrams/architecture.md) and [entry investigation](diagrams/entry-investigation.md) diagrams, and the C4 [context](diagrams/c4-context.md), [containers](diagrams/c4-containers.md) and [deployment](diagrams/c4-deployment.md) views, show the same design.
 
 ## Decisions at a glance
 
@@ -26,10 +26,10 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 | [ADR-012](#adr-012--related-entries-grouped-into-one-case) | Related entries grouped into one case | Accepted |
 | [ADR-013](#adr-013--narration-is-untrusted-agent-tools-are-read-only) | Narration is untrusted; agent tools are read-only | Accepted |
 | [ADR-014](#adr-014--fixed-model-allowance-per-case) | Fixed model allowance per case | Accepted |
-| [ADR-015](#adr-015--multi-region-in-japan-tokyo-primary-osaka-standby) | Multi-region in Japan: Tokyo primary, Osaka standby | Accepted, pending client |
+| [ADR-015](#adr-015--multi-region-in-india-mumbai-primary-hyderabad-standby) | Multi-region in India: Mumbai primary, Hyderabad standby | Accepted, pending client |
 | [ADR-016](#adr-016--processing-and-storage) | Processing and storage | Proposed |
 | [ADR-017](#adr-017--orchestrator-built-with-langchain-and-langgraph) | Orchestrator built with LangChain and LangGraph | Accepted |
-| [ADR-018](#adr-018--claude-on-amazon-bedrock-kept-in-japan) | Claude on Amazon Bedrock, kept in Japan | Accepted, models chosen by evaluation |
+| [ADR-018](#adr-018--claude-on-amazon-bedrock-kept-in-india) | Claude on Amazon Bedrock, kept in India | Accepted, models chosen by evaluation |
 | [ADR-019](#adr-019--observability-and-delivery) | Observability and delivery | Proposed |
 | [ADR-020](#adr-020--self-set-scale-extensions-from-17-september) | Self-set scale extensions from 17 September | Superseded by the client brief |
 | [ADR-021](#adr-021--local-development-with-docker-and-ollama-models) | Local development with Docker and Ollama models | Accepted |
@@ -271,41 +271,41 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 **Consequences:** Cost is bounded before any model call is made. Allowance values are sized in the cost model under the stricter reading of the budget (assumption A1).
 
-### ADR-015 · Multi-region in Japan: Tokyo primary, Osaka standby
+### ADR-015 · Multi-region in India: Mumbai primary, Hyderabad standby
 
-**Status:** Accepted, 30 Sep 2026 (team decision; replaces "Everything in Sri Lanka" of 29 Sep, which had replaced "one cloud region" of 24 Sep); pending client confirmation ([client log](client-log.md) Q-06, Q-07)
+**Status:** Accepted, 30 Sep 2026 (team decision; replaces "Multi-region in Japan", adopted earlier the same day, which had replaced "Everything in Sri Lanka" of 29 Sep and "one cloud region" of 24 Sep); pending client confirmation ([client log](client-log.md) Q-06, Q-07)
 
-**Context:** Client ledgers must stay in the client's region (brief §5). The team wants multi-region hosting, so that a regional outage during the January–March peak does not stop engagements, and a managed model rather than a self-hosted one. None of AWS, Azure or Google Cloud has a region in Sri Lanka, so a multi-region design has to keep ledgers in another country that the client accepts (assumption A3). As of 30 Sep 2026, Japan is the only Asian country where Amazon Bedrock keeps current Claude models' processing in-country across two regions, Tokyo and Osaka. In Mumbai, Hyderabad, Singapore, Seoul and Jakarta, Bedrock offers Claude only with global routing, which may process a call anywhere.
+**Context:** Client ledgers must stay in the client's region (brief §5). The team wants multi-region hosting, so that a regional outage during the January–March peak does not stop engagements, and a managed model rather than a self-hosted one. None of AWS, Azure or Google Cloud has a region in Sri Lanka, so a multi-region design has to keep ledgers in another country that the client accepts (assumption A3). As of 30 Sep 2026, Amazon Bedrock's India inference profile keeps Claude Haiku 4.5, Sonnet 5 and Opus 5 processing inside India, across Mumbai and Hyderabad, while Japan's profile keeps only Haiku 4.5 and the older Sonnet 4.6 in the country. India is also the nearest country to Sri Lanka with two cloud regions.
 
 **Decision:**
-- Everything that touches ledger data stays in Japan: storage, workers, model inference, backups, and logs or traces that contain ledger data. Code, synthetic ledgers and CI can run anywhere, because none of them is client data.
-- Tokyo (`ap-northeast-1`) is the primary region and runs all work. Osaka (`ap-northeast-3`) is a warm standby: it keeps continuously replicated copies of the run store and container images, and has the Run API and workers deployed but scaled to zero.
-- If Tokyo fails, the runbook promotes the Osaka database replica, starts the Run API and workers there and points the API's DNS name at Osaka. Each in-flight run resumes from its last checkpoint (ADR-016, ADR-017).
+- Everything that touches ledger data stays in India: storage, workers, model inference, backups, and logs or traces that contain ledger data. Code, synthetic ledgers and CI can run anywhere, because none of them is client data.
+- Mumbai (`ap-south-1`) is the primary region and runs all work. Hyderabad (`ap-south-2`) is a warm standby: it keeps continuously replicated copies of the run store and container images, and has the Run API and workers deployed but scaled to zero.
+- If Mumbai fails, the runbook promotes the Hyderabad database replica, starts the Run API and workers there and points the API's DNS name at Hyderabad. Each in-flight run resumes from its last checkpoint (ADR-016, ADR-017).
 - Recovery targets, to be confirmed by a failover drill: at most about a minute of lost writes, and service back within 30 minutes, so an interrupted run still finishes inside 4 hours.
-- Model calls use Bedrock's Japan inference profile, which sends each call to Tokyo or Osaka and never outside Japan (ADR-018), so a model outage in one region needs no failover.
+- Model calls use Bedrock's India inference profile, which sends each call to Mumbai or Hyderabad and never outside India (ADR-018), so a model outage in one region needs no failover.
 
 **Rejected alternatives:**
+- *Two regions in Japan, Tokyo and Osaka* (adopted earlier on 30 Sep): Bedrock's Japan profile keeps only Claude Haiku 4.5 and Sonnet 4.6 in the country, and Sonnet 5 and Opus 5 there use global routing, which may process a call anywhere. Japan is also farther from Sri Lanka.
 - *Everything in Sri Lanka with a self-hosted model* (the 29 Sep design): there is no second region to fail over to, the GPU is a fixed cost, and open-weights models may write weaker justifications. It remains the fallback if the client requires Sri Lanka (Q-06, Q-08).
-- *Mumbai and Hyderabad:* the nearest regions, but Bedrock offers Claude there only with global routing, so model calls could be processed outside India.
-- *Singapore paired with another Asian region:* the same problem.
-- *Sydney and Melbourne:* Bedrock's Australia profile meets the same rules, but it is farther from Sri Lanka with no offsetting advantage.
+- *Singapore paired with another Asian region:* Bedrock offers Claude there only with global routing.
+- *Sydney and Melbourne:* Bedrock's Australia profile also covers the newer models, but Australia is farther from Sri Lanka with no offsetting advantage.
 - *Active-active in both regions:* doubles the always-on cost and needs a database that accepts writes in both regions, for a peak of only 12 runs.
 - *Multi-cloud:* a second provider doubles the platform work, and Google's multi-region Claude endpoints cover only the US and the EU. It stays a conditional extension (scope §2).
-- *Bedrock's global endpoint:* cheaper and more available, but it may process calls outside Japan.
+- *Bedrock's global endpoint:* cheaper and more available, but it may process calls outside India.
 
-**Consequences:** Ledgers leave Sri Lanka, so this design stands only if the client accepts Japan (Q-06). The standby adds a fixed monthly cost, mostly the database replica, which the cost model shows against the USD 40 ceiling (scope §6), and model calls cost 10% more than global routing. A failover can lose the last moments of replicated work. Idempotent stage outputs and replay (ADR-010) make repeating that work safe: the ranking cannot change (ADR-003), and only the wording of repeated agent steps may differ. The runbook covers failover and failback, and both are rehearsed.
+**Consequences:** Ledgers leave Sri Lanka, so this design stands only if the client accepts India (Q-06). Hyderabad is a newer AWS region, so confirm that every service the design uses runs there before the first deploy. The standby adds a fixed monthly cost, mostly the database replica, which the cost model shows against the USD 40 ceiling (scope §6), and model calls cost 10% more than global routing. A failover can lose the last moments of replicated work. Idempotent stage outputs and replay (ADR-010) make repeating that work safe: the ranking cannot change (ADR-003), and only the wording of repeated agent steps may differ. The runbook covers failover and failback, and both are rehearsed.
 
 ### ADR-016 · Processing and storage
 
-**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan; confirm with the team and the load test
+**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in India; confirm with the team and the load test
 
-**Context:** Scoring 400,000 rows with rules and statistics is small work for one machine. Most of each run's time goes on model calls, and the peak is 12 concurrent engagements. Tokyo runs everything and Osaka stands by (ADR-015).
+**Context:** Scoring 400,000 rows with rules and statistics is small work for one machine. Most of each run's time goes on model calls, and the peak is 12 concurrent engagements. Mumbai runs everything and Hyderabad stands by (ADR-015).
 
 **Decision:**
-- One worker process per run, as a container task on Amazon ECS with Fargate: up to 12 at peak and none when idle. Osaka runs none until a failover.
-- PostgreSQL on Amazon RDS holds run state, case files, the job table and stored agent outputs, with a cross-region read replica in Osaka. Workers claim runs with `SELECT … FOR UPDATE SKIP LOCKED`.
+- One worker process per run, as a container task on Amazon ECS with Fargate: up to 12 at peak and none when idle. Hyderabad runs none until a failover.
+- PostgreSQL on Amazon RDS holds run state, case files, the job table and stored agent outputs, with a cross-region read replica in Hyderabad. Workers claim runs with `SELECT … FOR UPDATE SKIP LOCKED`.
 - DuckDB scores each ledger snapshot inside the worker. Criteria are versioned SQL files, which keeps every rule readable and auditable.
-- Immutable ledger snapshots (Parquet) and working papers are kept in Amazon S3 in Tokyo and replicated to Osaka, and container images are replicated the same way.
+- Immutable ledger snapshots (Parquet) and working papers are kept in Amazon S3 in Mumbai and replicated to Hyderabad, and container images are replicated the same way.
 - LangGraph's Postgres checkpointer saves each case's graph state after every node (ADR-017), and stage outputs are written idempotently under run, case and step keys, so a restarted worker in either region resumes without losing or duplicating results.
 
 **Rejected alternatives:**
@@ -313,13 +313,14 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 - *Spark or another distributed engine:* 400,000 rows fit comfortably on one machine.
 - *A separate queue service:* one more moving part, when a job table can share a transaction with run state. Revisit if contention appears.
 - *A durable-workflow engine such as Temporal:* its replay model fits ADR-010 well, but it adds another stateful platform to run and replicate across two regions.
-- *Serverless functions:* a worst-case run takes about an hour, beyond a function's time limit (15 minutes on AWS Lambda).
+- *Serverless functions:* a run can take one to two hours, beyond a function's time limit (15 minutes on AWS Lambda).
 - *Aurora Global Database:* faster, managed failover, but it costs more at this size. Switch to it if the failover drill misses its targets.
 
-**Consequences:** Few moving parts to operate and explain, and nothing runs in Osaka except the database replica until a failover. Rough sizing for the load test to confirm, assuming about 3,000 input and 600 output tokens and 5 seconds per call:
-- At most 300 cases × about 10 calls gives 3,000 calls per run. At 8 concurrent calls, a run's model work takes about 30 minutes.
-- 12 such runs would need about 3.5 million input and 0.7 million output tokens per minute. Bedrock allows 2 million input tokens per minute by default, and grants up to 5 million input and 0.5 million output on request without special approval (ADR-018).
-- Capping each run at 4 concurrent calls halves the demand, which then fits the quotas granted on request, and still finishes a worst-case run in about an hour.
+**Consequences:** Few moving parts to operate and explain, and nothing runs in Hyderabad except the database replica until a failover. Rough sizing for the load test to confirm, assuming Claude Haiku 4.5 with about 3,000 input and 600 output tokens and 5 seconds per call:
+- At most 300 cases × about 10 calls gives 3,000 calls per run. At 4 concurrent calls, a run's model work takes about an hour.
+- Bedrock limits tokens per minute for each model in each region, counting input and output together, and each output token counts 5 times for Haiku 4.5 and 10 times for Sonnet 5. A call's `max_tokens` is reserved in full when the call starts, and cached prompt reads do not count (ADR-018).
+- One Haiku call therefore uses about 6,000 quota tokens. Twelve runs at 4 concurrent calls need about 3.5 million quota tokens per minute. At 2 concurrent calls they need about 1.7 million, and a worst-case run takes about 2 hours, still inside 4.
+- Default quotas show only in the account's Service Quotas console, and AWS favours increase requests from accounts that already use their quota. Request the increase early, and set each run's concurrency to fit what is granted.
 
 ### ADR-017 · Orchestrator built with LangChain and LangGraph
 
@@ -342,49 +343,52 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 - *LangChain chains on their own:* fine for single calls, but awkward for conditional routing, parallel fan-out and resuming after a crash.
 - *Conversation-driven multi-agent frameworks* (AutoGen- or CrewAI-style): control flow emerges from agents talking to each other, which conflicts with ADR-009 and ADR-010.
 
-**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain talks to Claude on Bedrock like any other chat model, so changing the model or region is a configuration change (ADR-018), which is also how local development swaps in Ollama models (ADR-021). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
+**Consequences:** The step ⑤ boxes map one-to-one onto graph nodes, so the diagrams, the code and the traces share names. LangChain talks to Claude on Bedrock like any other chat model, so changing the model or region is a configuration change (ADR-018), which is also how local development swaps in Ollama models (ADR-021). Because LangChain and LangGraph change quickly, versions stay pinned and the determinism test (ADR-019) guards every upgrade. LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside India (ADR-015, ADR-019). Each team member needs to learn LangGraph's state and reducer model.
 
-### ADR-018 · Claude on Amazon Bedrock, kept in Japan
+### ADR-018 · Claude on Amazon Bedrock, kept in India
 
-**Status:** Accepted, 30 Sep 2026 (replaces "Self-hosted open-weights models in Sri Lanka" of 29 Sep); the model for each role is chosen by the agent-quality evaluation
+**Status:** Accepted, 30 Sep 2026 (replaces "Claude on Amazon Bedrock, kept in Japan", adopted earlier the same day, which had replaced "Self-hosted open-weights models in Sri Lanka" of 29 Sep); the model for each role is chosen by the agent-quality evaluation
 
-**Context:** Model calls carry ledger text, so they must stay in Japan (ADR-015). As of 30 Sep 2026, Amazon Bedrock serves current Claude models through its Messages API with a Japan inference profile that sends each call to Tokyo or Osaka, at a 10% premium over global routing. Anthropic's own API pins inference only to the US or globally, and Google's multi-region Claude endpoints cover only the US and the EU. Bedrock's Claude endpoint offers neither provider-side structured outputs nor the Message Batches API. Every price must carry its source and lookup date (handbook §5).
+**Context:** Model calls carry ledger text, so they must stay in India (ADR-015). As of 30 Sep 2026, Amazon Bedrock's standard runtime endpoint offers India inference profiles for Claude Haiku 4.5, Sonnet 5 and Opus 5 that send each call to Mumbai or Hyderabad, at a 10% premium over global routing. Its other Claude endpoint, bedrock-mantle, has no geographic profiles and does not serve Claude in either Indian region. Anthropic's own API pins inference only to the US or globally, and Google's multi-region Claude endpoints cover only the US and the EU. Every price must carry its source and lookup date (handbook §5).
 
 **Decision:**
-- Call Claude through Bedrock's Messages API with the Japan inference profile, so every call is processed in Tokyo or Osaka and a model outage in one region is absorbed without a failover.
-- For each role, use the smallest model that passes the agent-quality evaluation. Start with Claude Haiku 4.5 for the router and specialists and Claude Sonnet 5 for the writer, and compare them with Sonnet 5 in every role. Before pinning a model, confirm that the Japan profile serves it.
-- Pin each role's model ID and the inference profile in the run manifest (ADR-003).
-- Pass each agent's output schema as a tool definition through LangChain's structured-output support, because the endpoint has no native structured-output mode. Code still validates every output and replays it by input hash (ADR-010).
-- Cache the fixed part of each prompt (instructions, schema and query catalogue) with prompt caching.
-- If the Japan profile fails, calls retry with backoff within the run's time limit, and then the case falls back to the template (ADR-011). Calls never fall back to the global endpoint.
+- Call Claude through Bedrock's runtime endpoint and Converse API with India profile IDs, such as `in.anthropic.claude-haiku-4-5-20251001-v1:0` and `in.anthropic.claude-sonnet-5`. Every call is processed in Mumbai or Hyderabad, and a model outage in one region is absorbed without a failover. Workers call the endpoint in their own region, so Hyderabad workers keep working after a failover.
+- LangChain's AWS chat model (`ChatBedrockConverse`) signs each request with the worker's AWS role, so no model keys are stored.
+- For each role, use the smallest model that passes the agent-quality evaluation. Start with Claude Haiku 4.5 for the router and specialists and Claude Sonnet 5 for the writer, compare them with Sonnet 5 in every role, and consider Opus 5 for the writer only if the evaluation shows a need.
+- Pin each role's model ID and inference profile in the run manifest (ADR-003).
+- Use Bedrock's structured outputs for Haiku 4.5, which supports them on this endpoint. Sonnet 5 and Opus 5 do not, so they receive their schema as a tool definition through LangChain. Either way, code validates every output and replays it by input hash (ADR-010).
+- Cache the fixed part of each prompt (instructions, schema and query catalogue) with prompt caching, and set each call's `max_tokens` close to the expected answer length, because Bedrock reserves it against the quota when the call starts.
+- If the India profile fails, calls retry with backoff within the run's time limit, and then the case falls back to the template (ADR-011). Calls never fall back to the global endpoint.
 
 **Rejected alternatives:**
+- *Bedrock's Japan profile* (adopted earlier on 30 Sep): it keeps only Claude Haiku 4.5 and Sonnet 4.6 in Japan.
+- *The bedrock-mantle endpoint:* no geographic profiles, and no Claude in Mumbai or Hyderabad.
 - *Self-hosted open-weights models in Sri Lanka* (the 29 Sep design): a fixed GPU cost, and possibly weaker justifications. It returns only if the client requires Sri Lanka (ADR-015).
-- *Bedrock's global endpoint:* no premium and the best availability, but calls may be processed outside Japan.
+- *Bedrock's global endpoint:* no premium and the best availability, but calls may be processed outside India.
 - *Anthropic's API or Claude Platform on AWS:* inference can be pinned only to the US or globally.
 - *Google Vertex:* its multi-region endpoints cover only the US and the EU, and its single-region endpoints serve only Claude Sonnet 4.6 and older.
-- *Batch pricing:* the Message Batches API and its discount are not available on Bedrock.
+- *Bedrock batch inference:* jobs run asynchronously with no promise of finishing inside a run's 4 hours, and each graph step needs the previous answer.
 
-**Consequences:** Model cost is per call again, with no fixed GPU. At Anthropic's list prices plus the 10% premium (list prices checked 29 Sep 2026: Haiku 4.5 at USD 1 and Sonnet 5 at USD 2 per million input tokens, USD 5 and USD 10 per million output tokens), the worst case with Haiku 4.5 in every role is about USD 20 per run: 3,000 calls of about 3,000 input and 600 output tokens (ADR-014, assumption A1). Sonnet 5 as the writer adds about USD 4, and prompt caching lowers both. The cost model replaces these estimates with Bedrock's own dated prices and measured tokens. At peak, Bedrock's per-minute token quotas limit concurrency more than runtime does (ADR-016). A first spike must confirm that LangChain works against this endpoint with short-lived AWS credentials.
+**Consequences:** Model cost is per call, with no fixed GPU. At Anthropic's list prices plus the 10% premium (list prices checked 29 Sep 2026: Haiku 4.5 at USD 1 and Sonnet 5 at USD 2 per million input tokens, USD 5 and USD 10 per million output tokens), the worst case with Haiku 4.5 in every role is about USD 20 per run: 3,000 calls of about 3,000 input and 600 output tokens (ADR-014, assumption A1). Sonnet 5 as the writer adds about USD 4, and prompt caching lowers both. The cost model replaces these estimates with Bedrock's own dated prices and measured tokens. At peak, Bedrock's per-minute token quotas limit concurrency more than runtime does (ADR-016). A wiring test on 30 Sep 2026 reached Bedrock's runtime endpoint in Mumbai through LangChain and was refused only because its credentials were fake, so a real call still needs an AWS account with Bedrock access. LangChain cannot confirm streaming for the `in.` prefix and falls back to non-streaming calls, which Tickmark does not need.
 
 ### ADR-019 · Observability and delivery
 
-**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in Japan, and for the `develop` and `main` branch flow (team decision)
+**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in India, and for the `develop` and `main` branch flow (team decision)
 
 **Context:** The brief lists observability spans per engagement as a cost line, operability carries 10% of the handbook's marks, and the assessors review the GitHub history. There is one cloud environment; developers work locally (ADR-021).
 
 **Decision:**
-- OpenTelemetry traces: one trace per run, with spans per stage and per model call, plus metrics for spend, calls, allowance use and cache hits. Spans carry IDs and hashes, never ledger text, and the telemetry backend runs in Japan.
+- OpenTelemetry traces: one trace per run, with spans per stage and per model call, plus metrics for spend, calls, allowance use and cache hits. Spans carry IDs and hashes, never ledger text, and the telemetry backend runs in India.
 - Health checks on the Run API, workers, database and model calls raise an alarm that starts the failover runbook (ADR-015).
-- LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside Japan. LangChain callbacks feed the OpenTelemetry traces instead.
+- LangSmith tracing stays switched off, because hosted tracing would send prompts containing ledger text outside India. LangChain callbacks feed the OpenTelemetry traces instead.
 - Two long-lived branches: `develop` collects finished work from short-lived feature branches, and `main` always matches the cloud. A release is a pull request from `develop` into `main`; an urgent fix branches from `main` and is merged back into `develop`. The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 - Pull requests run the unit tests and a determinism test, in which the decision hash of a fixture ledger must match a checked-in value. After each merge into `develop`, a smoke test sends one synthetic case to Claude on Bedrock, because local development uses other models (ADR-021). Tests use synthetic data only, so no ledger data passes through GitHub.
-- Each merge into `main` builds the container images once and deploys them to both regions through a short-lived AWS role, with no stored keys. Osaka receives the same build with no running tasks, so a failover never starts an older version; while Osaka is in use after a failover, releases deploy to Osaka only.
+- Each merge into `main` builds the container images once and deploys them to both regions through a short-lived AWS role, with no stored keys. Hyderabad receives the same build with no running tasks, so a failover never starts an older version; while Hyderabad is in use after a failover, releases deploy to Hyderabad only.
 - The Run API is replaced by a rolling update: a new task takes traffic only after its health check passes, and ECS's deployment circuit breaker rolls a failed deploy back automatically. Workers are not restarted. Each run pins its image digest, so a run in flight finishes on the build it started with, and new runs use the new build.
 - Manual rollback redeploys the previous image.
 
 **Rejected alternatives:**
-- *A hosted observability service outside Japan, including hosted LangSmith:* telemetry that carries ledger data must stay in Japan.
+- *A hosted observability service outside India, including hosted LangSmith:* telemetry that carries ledger data must stay in India.
 - *Manual deployment:* no audit trail in GitHub and no repeatable rollback.
 - *Trunk-based development, deploying every merge:* simpler, but with no cloud test environment every merge would go straight to the system the client uses.
 - *Full GitFlow, with release branches and version tags:* more ceremony than three people need on a short project.
@@ -407,7 +411,7 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 **Status:** Accepted, 30 Sep 2026 (team decision)
 
-**Context:** Developers need to run the whole pipeline on their own machines, without AWS costs, credentials or shared state. Development uses only synthetic ledgers, so the rule that keeps ledger data in Japan (ADR-015) does not apply locally. In the cloud, agents call Claude on Bedrock (ADR-018), which is paid per call and needs AWS access.
+**Context:** Developers need to run the whole pipeline on their own machines, without AWS costs, credentials or shared state. Development uses only synthetic ledgers, so the rule that keeps ledger data in India (ADR-015) does not apply locally. In the cloud, agents call Claude on Bedrock (ADR-018), which is paid per call and needs AWS access.
 
 **Decision:**
 - Docker Compose runs the local environment with the same containers as the cloud: the Run API, a worker, PostgreSQL, S3-compatible object storage such as MinIO, and an OpenTelemetry collector.
@@ -431,14 +435,14 @@ Where the client has not told us something, the team decides and records the dec
 |---|---|---|---|
 | A1 | Each run is capped at USD 30–40, and the design targets about USD 20 worst case per run, so an engagement's 3–4 runs stay under USD 40 even if the ceiling is per engagement; replay keeps repeated work free (team decision, 29 Sep 2026) | ADR-010, ADR-014, ADR-018 | The client confirms how re-runs are budgeted (Q-05) |
 | A2 | The 4-hour limit applies to each run | ADR-016 | The client confirms (Q-05) |
-| A3 | "Our region" can be a country the client approves, not only Sri Lanka, and the team proposes Japan: storage, processing, the model, backups and ledger-bearing telemetry all stay in Japan, across Tokyo and Osaka (team decision, 30 Sep 2026; replaces "Sri Lanka only" of 29 Sep) | ADR-015, ADR-016, ADR-018, ADR-019 | The client confirms the region (Q-06) |
+| A3 | "Our region" can be a country the client approves, not only Sri Lanka, and the team has chosen India: storage, processing, the model, backups and ledger-bearing telemetry all stay in India, across Mumbai and Hyderabad (team decision, 30 Sep 2026; replaces Japan, chosen earlier the same day, and "Sri Lanka only" of 29 Sep) | ADR-015, ADR-016, ADR-018, ADR-019 | The client confirms the region (Q-06) |
 | A4 | An "entry" is one journal line, matching the brief's 400,000 rows and 300 reviews; lines of the same journal share a case (team decision, 29 Sep 2026) | ADR-003, ADR-012 | The client confirms the review unit (Q-09) |
 | A5 | The working paper follows the 4-page sample shared on 29 Sep 2026: a PDF with a sign-off block (preparer, reviewer, manager) and CSV appendices | ADR-002 | The client describes a signable working paper (Q-03) |
 | A6 | Criteria are equally weighted until the client's risk framework arrives; weights are run settings, so changing them means a re-run, not a code change | ADR-001 | The client shares its risk framework (Q-01) |
 | A7 | Normal off-peak volume is unknown, so the cost model shows 1, 4 and 12 engagements a month instead of guessing one figure | ADR-014, ADR-016, ADR-018 | The client gives normal volume (Q-10) |
 | A8 | Pass thresholds for precision, recall and false positives are set by the team before the locked evaluation and sent to the client to confirm; the client log and the [evaluation plan](evaluation-plan.md) hold them | ADR-004, ADR-007 | The client says what "good enough" means (Q-02) |
 | A9 | The handbook governs assessment, so the earlier four-criterion infrastructure slide is not treated as binding | ADR-015, ADR-020 | The instructors answer (I-01) |
-| A10 | The client accepts AWS, and the team runs the system and the capstone demo in its own AWS account, with Claude on Bedrock enabled in Tokyo and Osaka, on synthetic ledgers at list prices (no course credits assumed) | ADR-015, ADR-016, ADR-018 | The client (Q-07) and the instructors (I-02) answer |
+| A10 | The client accepts AWS, and the team runs the system and the capstone demo in its own AWS account, with Claude on Bedrock enabled in Mumbai and Hyderabad, on synthetic ledgers at list prices (no course credits assumed) | ADR-015, ADR-016, ADR-018 | The client (Q-07) and the instructors (I-02) answer |
 
 ## How the decisions will be tested
 
@@ -451,7 +455,7 @@ Where the client has not told us something, the team decides and records the dec
 | ADR-011 | Drafts seeded with a fake evidence ID or a wrong figure are caught before the working paper |
 | ADR-013 | Injected narration and cross-engagement queries fail safely |
 | ADR-014, ADR-016 | Measured cost stays under the pre-computed worst case, and 12 concurrent full-scale runs each finish inside 4 hours |
-| ADR-015 | A failover drill: a run interrupted in Tokyo resumes in Osaka within the recovery targets, with the same decision hash and no lost or duplicated results. A deployment check shows that no ledger data, model call or trace leaves Japan |
+| ADR-015 | A failover drill: a run interrupted in Mumbai resumes in Hyderabad within the recovery targets, with the same decision hash and no lost or duplicated results. A deployment check shows that no ledger data, model call or trace leaves India |
 | ADR-018 | Haiku 4.5 and Sonnet 5 are compared role by role on the agent-quality cases, and 12 concurrent runs stay within Bedrock's quotas and finish inside 4 hours |
 | ADR-019 | A deploy during a running engagement leaves the run unaffected, and a deliberately broken build is rolled back automatically |
 | ADR-021 | A new team member runs the pipeline end to end on a small synthetic ledger with one Docker Compose command |
@@ -467,3 +471,4 @@ Where the client has not told us something, the team decides and records the dec
 - **30 Sep 2026, later:** the team decided every open question itself, because the demo and evaluation use only synthetic ledgers; questions to the client and the instructors are still sent as confirmations ([client log](client-log.md)). ADR-004 now covers two business profiles and runs two public datasets as an external check, set out in the new [evaluation plan](evaluation-plan.md).
 - **30 Sep 2026, branch flow:** the team adopted `develop` and `main` branches, with `develop` as GitHub's default branch and a deploy to the cloud on every merge into `main` (ADR-019), and local development with Docker and Ollama models (ADR-021). The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 - **30 Sep 2026, datasets:** the second business profile is wholesale trading, to match the company in the Gronewald et al. dataset. The Schreyer et al. lab dataset turned out to be synthetic payments data relabelled with SAP-style fields, and the Gronewald et al. data is not yet public, so ADR-004 and the [evaluation plan](evaluation-plan.md) were corrected.
+- **30 Sep 2026, India:** a check of Bedrock's model cards showed that the Japan profile keeps only Claude Haiku 4.5 and Sonnet 4.6 in the country, while the India profile covers Haiku 4.5, Sonnet 5 and Opus 5. The earlier finding that India had only global routing came from checking the bedrock-mantle endpoint alone. The team moved hosting to Mumbai and Hyderabad: ADR-015 and ADR-018 were rewritten, ADR-016, ADR-017, ADR-019 and ADR-021 were updated, and model calls now go through Bedrock's runtime endpoint and Converse API instead of bedrock-mantle. ADR-016's quota sizing now follows the runtime endpoint's rules.
