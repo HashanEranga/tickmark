@@ -6,7 +6,7 @@ How the team works in this repository. The reasons are in the [ADR](docs/adr.md)
 
 | Branch | What it holds | Where it runs |
 |---|---|---|
-| `main` | Exactly what runs in the cloud. Changes arrive only by pull request from `develop` or a `hotfix/` branch. | AWS Tokyo, with the Osaka standby; every merge deploys |
+| `main` | Exactly what runs in the cloud. Changes arrive only by pull request from `develop` or a `hotfix/` branch. | AWS Mumbai, with the Hyderabad standby; every merge deploys |
 | `develop` | The integration branch, and GitHub's default branch. Every change lands here first. | Team members' machines, in Docker |
 | `feature/<short-name>` or `docs/<short-name>` | One change, branched from `develop` and deleted after merging. | Team members' machines |
 | `hotfix/<short-name>` | An urgent fix, branched from `main` and deleted after merging. | – |

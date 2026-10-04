@@ -80,7 +80,7 @@ Layers 2 and 3 have no pass mark, because their labels were not designed around 
 - Check each dataset's licence before use. Do not commit the data; commit a download script and a checksum, and pin the dataset version in the run manifest.
 - Labels never reach scoring or the agents.
 - Report external results in their own section, with their limits. They show how Tickmark behaves on data the team did not design. They do not show real-world fraud detection, and Tickmark claims no ISA 240 compliance.
-- These are public datasets, not client data, so the rule that keeps ledger data in Japan (ADR-015) does not apply to them.
+- These are public datasets, not client data, so the rule that keeps ledger data in India (ADR-015) does not apply to them.
 
 ## Order of work
 
