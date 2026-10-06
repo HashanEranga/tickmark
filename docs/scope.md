@@ -24,7 +24,7 @@ The routed multi-agent team at step 5 is a team decision rather than a client re
 
 ## 2. Product scope
 
-Tickmark supports one audit procedure: **journal entry testing in support of ISA 240**. It is an auditor decision-support tool, not a full audit platform, a fraud determination service or an audit opinion generator.
+Tickmark supports one audit procedure: **journal entry testing in support of ISA 240**. It is an auditor decision-support tool, not a full audit platform, a fraud determination service or an audit opinion generator. Sri Lankan auditors apply ISA 240 as SLAuS 240, the Sri Lanka Auditing Standard that CA Sri Lanka adopts under the Sri Lanka Accounting and Auditing Standards Act No. 15 of 1995, so Tickmark cites both (ADR-022).
 
 ### Required golden path (brief §§3–4, 11)
 
@@ -41,7 +41,7 @@ For one engagement, run as a batch job with no interactive or conversational int
    - A writer agent drafts the justification from the findings in a fixed order and shows any disagreement side by side. A code verifier checks that every figure and entry ID in the draft exists in the evidence; a templated justification replaces any draft that fails.
 
    The run records how many entries reached the agents and how many model calls they made.
-6. Tickmark produces a working paper that an engagement reviewer can sign. For each entry it shows the named ISA 240 criterion or criteria that flagged it, the underlying source record, the calculations, the specialists' findings and the justification, with both findings shown wherever specialists disagree. A flag is not a finding of fraud; the auditor concludes.
+6. Tickmark produces a working paper that an engagement reviewer can sign. For each entry it shows the named ISA 240 criterion or criteria that flagged it, with the matching SLAuS 240 reference, the underlying source record, the calculations, the specialists' findings and the justification, with both findings shown wherever specialists disagree. A flag is not a finding of fraud; the auditor concludes.
 7. The team refines the criteria and re-runs, typically 3–4 times per engagement. Each re-run is a new versioned run that preserves earlier runs and working papers, and a re-run with unchanged ledger and settings reproduces the same ranking.
 8. Each run completes in under 4 hours and the engagement stays under USD 40, demonstrated at full scale rather than projected. Results remain retrievable after a service restart.
 
@@ -80,13 +80,13 @@ IT services and deadline-weighted scheduling remain stretch goals. No extension 
 - Continuous monitoring and ERP integration, including automatically blocking or approving journal entries; the brief asks for neither.
 - Sending every row, or unfiltered rows, to a language model.
 - A free-running orchestrator agent or open-ended agent-to-agent conversation; routing and follow-ups stay bounded.
-- Claims of ISA 240 compliance or proven real-world fraud detection based only on synthetic tests.
+- Claims of ISA 240 or SLAuS 240 compliance, or of proven real-world fraud detection, based only on synthetic tests.
 - Real client ledgers or real personal data; all demonstration and evaluation data must be synthetic, with generation documented.
 - Autonomous auditor conclusions, or agent- or model-determined scores, criterion triggers or rankings unless the conditional extension above is adopted.
 
 ### Domain validation
 
-Request the client's risk framework, which the brief offers on request (brief §10), and use it to weight the criteria. Seek validation from a practising audit manager for simulator scenarios, rule definitions and evaluation interpretation. This is a planned validation activity, not an approval already obtained. Each criterion records its audit rationale, applicable ISA 240 reference and edition, assumptions and limitations. Distinguish requirements in the standard from project-designed heuristics; do not imply that ISA 240 prescribes a particular scoring formula or review budget.
+Request the client's risk framework, which the brief offers on request (brief §10), and use it to weight the criteria. Seek validation from a practising audit manager for simulator scenarios, rule definitions and evaluation interpretation, and confirmation that SLAuS 240's local changes leave journal entry testing as ISA 240 describes it. This is a planned validation activity, not an approval already obtained. Each criterion records its audit rationale, its ISA 240 and SLAuS 240 references with the edition of each, assumptions and limitations. Distinguish requirements in the standards from project-designed heuristics; do not imply that either standard prescribes a particular scoring formula or review budget.
 
 ## 3. Assessment mapping
 
