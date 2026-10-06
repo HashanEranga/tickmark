@@ -14,7 +14,7 @@ Tickmark reads a client's general ledger and tells the engagement team which jou
 
 ## For an industry audience (~30 seconds)
 
-A typical client ledger at a mid-tier audit firm runs to 400,000 entries, and an engagement team can review about 300. Under ISA 240 they must test journal entries for fraud risk, and today they pick those 300 with crude filters and instinct. It takes two to three days, and when a regulator asks why those 300, the answer is weak.
+A typical client ledger at a mid-tier audit firm runs to 400,000 entries, and an engagement team can review about 300. Under ISA 240, which Sri Lanka adopts as SLAuS 240, they must test journal entries for fraud risk, and today they pick those 300 with crude filters and instinct. It takes two to three days, and when a regulator asks why those 300, the answer is weak.
 
 Tickmark scores every entry with rules and statistics and picks the 300 that most deserve review. A router agent then sends each of those 300 to the specialist agents it needs, for the accounts and amounts, who posted it and when, and the narration. A writer agent turns their findings into a plain-English justification citing the ISA 240 criterion and the source record. The client's targets: under four hours and under forty dollars per engagement.
 
@@ -46,9 +46,9 @@ The client's reviewers will re-run the same ledger and expect the same ranking, 
 
 - Say **"reduces the review population"**. Never say "replaces the auditor".
 - To assessors, lead with the **working batch run and its evidence**: runtime, cost per engagement, precision and recall. To industry, lead with the **pain**. Same system, two registers.
-- Every flag names the **ISA 240 criterion** that caught it and links to its source record. Thresholds are our documented heuristics and weights follow the client's risk framework; neither is prescribed by the standard.
+- Every flag names the **ISA 240 criterion** that caught it, with its SLAuS 240 reference, and links to its source record. Thresholds are our documented heuristics and weights follow the client's risk framework; neither standard prescribes them.
 - **Code decides, agents explain.** Rules and statistics choose and rank the entries; the agents investigate and justify them but never change the order.
 
 ---
 
-*Title and description last revised 2026-09-30 against the client brief (v1.0, 18 Sep 2026).*
+*Title and description last revised 2026-10-07 against the client brief (v1.0, 18 Sep 2026).*

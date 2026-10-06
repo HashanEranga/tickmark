@@ -27,12 +27,13 @@ Code decides; agents explain. Rules and statistics score all 400,000 entries and
 | [ADR-013](#adr-013--narration-is-untrusted-agent-tools-are-read-only) | Narration is untrusted; agent tools are read-only | Accepted |
 | [ADR-014](#adr-014--fixed-model-allowance-per-case) | Fixed model allowance per case | Accepted |
 | [ADR-015](#adr-015--multi-region-in-india-mumbai-primary-hyderabad-standby) | Multi-region in India: Mumbai primary, Hyderabad standby | Accepted, pending client |
-| [ADR-016](#adr-016--processing-and-storage) | Processing and storage | Proposed |
+| [ADR-016](#adr-016--processing-and-storage) | Processing and storage | Accepted |
 | [ADR-017](#adr-017--orchestrator-built-with-langchain-and-langgraph) | Orchestrator built with LangChain and LangGraph | Accepted |
 | [ADR-018](#adr-018--claude-on-amazon-bedrock-kept-in-india) | Claude on Amazon Bedrock, kept in India | Accepted, models chosen by evaluation |
-| [ADR-019](#adr-019--observability-and-delivery) | Observability and delivery | Proposed |
+| [ADR-019](#adr-019--observability-and-delivery) | Observability and delivery | Accepted |
 | [ADR-020](#adr-020--self-set-scale-extensions-from-17-september) | Self-set scale extensions from 17 September | Superseded by the client brief |
 | [ADR-021](#adr-021--local-development-with-docker-and-ollama-models) | Local development with Docker and Ollama models | Accepted |
+| [ADR-022](#adr-022--criteria-cite-isa-240-and-sri-lankas-slaus-240) | Criteria cite ISA 240 and Sri Lanka's SLAuS 240 | Accepted |
 
 ## Decisions
 
@@ -297,7 +298,7 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 ### ADR-016 · Processing and storage
 
-**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in India; confirm with the team and the load test
+**Status:** Accepted, 7 Oct 2026 (team decision); proposed 28 Sep 2026 and updated 30 Sep for two AWS regions in India. The load test still checks the sizing.
 
 **Context:** Scoring 400,000 rows with rules and statistics is small work for one machine. Most of each run's time goes on model calls, and the peak is 12 concurrent engagements. Mumbai runs everything and Hyderabad stands by (ADR-015).
 
@@ -373,7 +374,7 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 ### ADR-019 · Observability and delivery
 
-**Status:** Proposed, 28 Sep 2026; updated 30 Sep for two AWS regions in India, and for the `develop` and `main` branch flow (team decision)
+**Status:** Accepted, 7 Oct 2026 (team decision); proposed 28 Sep 2026, and updated 30 Sep for two AWS regions in India and for the `develop` and `main` branch flow
 
 **Context:** The brief lists observability spans per engagement as a cost line, operability carries 10% of the handbook's marks, and the assessors review the GitHub history. There is one cloud environment; developers work locally (ADR-021).
 
@@ -427,6 +428,27 @@ A failed draft gets one repair attempt using the verifier's errors (ADR-010), th
 
 **Consequences:** Local runs say nothing about agent quality, because small local models behave differently from Claude. The agent evaluation, the load test and the demo run only against Bedrock ([evaluation plan](evaluation-plan.md)). The replay store keys every output by model (ADR-010), so local outputs never mix with cloud ones. Prompts may need small per-model differences; they stay in version control and are pinned in the run manifest (ADR-003). Every change reaches Bedrock through the smoke test on `develop` before release (ADR-019). A full-size local run would take hours, because a run makes up to about 3,000 model calls.
 
+### ADR-022 · Criteria cite ISA 240 and Sri Lanka's SLAuS 240
+
+**Status:** Accepted, 7 Oct 2026 (team decision)
+
+**Context:** The brief asks that every flag resolve to a named ISA 240 criterion (brief §11), and the client is a Sri Lankan audit firm. In Sri Lanka, the Institute of Chartered Accountants of Sri Lanka (CA Sri Lanka) adopts the International Standards on Auditing as Sri Lanka Auditing Standards (SLAuS) under the Sri Lanka Accounting and Auditing Standards Act No. 15 of 1995, which makes them compulsory for audits of the entities the Act specifies. SLAuS 240 has the same title as ISA 240. CA Sri Lanka describes its standards as the ISAs with slight changes for local conditions, so that complying with them complies with the ISAs in all material respects. The IAASB issued ISA 240 (Revised) in July 2025, effective for audits of financial statements for periods beginning on or after 15 December 2026. On 7 Oct 2026 we found no Sri Lankan adoption date for it; IFAC's member profile, updated in June 2026, says CA Sri Lanka has adopted the 2024 IAASB Handbook and is adopting the 2025 edition. We have not yet read SLAuS 240's text on journal entries.
+
+**Decision:**
+- Tickmark names both standards, as "ISA 240, adopted in Sri Lanka as SLAuS 240". The criteria keep the brief's names, C1 to C5.
+- Each criterion's definition, pinned in the run manifest (ADR-003), records its ISA 240 and SLAuS 240 paragraph references and the edition of each. The working paper shows both references for every flag.
+- The working paper cites the edition that applies to the ledger's period: for periods beginning before 15 December 2026, the current ISA 240 and SLAuS 240.
+- Before the locked evaluation, the domain advisor confirms that SLAuS 240's local changes leave journal entry testing as ISA 240 describes it.
+- Before the final report, the team checks whether CA Sri Lanka has adopted ISA 240 (Revised), and whether the five warning signs still match its text.
+- Neither standard prescribes the thresholds, the weights or the 300-entry review budget, and Tickmark claims compliance with neither.
+
+**Rejected alternatives:**
+- *ISA 240 only:* matches the brief, but the client's teams work to SLAuS 240, so a reviewer would have to map every reference to the local standard before signing.
+- *SLAuS 240 only:* the brief uses ISA 240, and the international name is the one readers outside Sri Lanka recognise.
+- *ISA 240 (Revised) now:* it applies only to periods beginning on or after 15 December 2026, and we found no Sri Lankan adoption date.
+
+**Consequences:** The criteria and the working paper carry two references instead of one. Until the domain advisor has checked SLAuS 240's text, this decision rests on CA Sri Lanka's statement that its standards match the ISAs in all material respects. A local difference, or a later move to the revised standard, changes a criterion's text and possibly its rule; after the locked evaluation, either counts as a new evaluation version (scope §5).
+
 ## Assumptions
 
 Where the client has not told us something, the team decides and records the decision below. The [client log](client-log.md) tracks each question, the team's decision, whether it is sent to the client or the instructors to confirm, and any reply. A decision is replaced only if a reply contradicts it (scope §7).
@@ -459,6 +481,7 @@ Where the client has not told us something, the team decides and records the dec
 | ADR-018 | Haiku 4.5 and Sonnet 5 are compared role by role on the agent-quality cases, and 12 concurrent runs stay within Bedrock's quotas and finish inside 4 hours |
 | ADR-019 | A deploy during a running engagement leaves the run unaffected, and a deliberately broken build is rolled back automatically |
 | ADR-021 | A new team member runs the pipeline end to end on a small synthetic ledger with one Docker Compose command |
+| ADR-022 | The domain advisor confirms each criterion's ISA 240 and SLAuS 240 references and editions, and every flag in a sample working paper shows both |
 
 ## Change log
 
@@ -472,3 +495,5 @@ Where the client has not told us something, the team decides and records the dec
 - **30 Sep 2026, branch flow:** the team adopted `develop` and `main` branches, with `develop` as GitHub's default branch and a deploy to the cloud on every merge into `main` (ADR-019), and local development with Docker and Ollama models (ADR-021). The working rules are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 - **30 Sep 2026, datasets:** the second business profile is wholesale trading, to match the company in the Gronewald et al. dataset. The Schreyer et al. lab dataset turned out to be synthetic payments data relabelled with SAP-style fields, and the Gronewald et al. data is not yet public, so ADR-004 and the [evaluation plan](evaluation-plan.md) were corrected.
 - **30 Sep 2026, India:** a check of Bedrock's model cards showed that the Japan profile keeps only Claude Haiku 4.5 and Sonnet 4.6 in the country, while the India profile covers Haiku 4.5, Sonnet 5 and Opus 5. The earlier finding that India had only global routing came from checking the bedrock-mantle endpoint alone. The team moved hosting to Mumbai and Hyderabad: ADR-015 and ADR-018 were rewritten, ADR-016, ADR-017, ADR-019 and ADR-021 were updated, and model calls now go through Bedrock's runtime endpoint and Converse API instead of bedrock-mantle. ADR-016's quota sizing now follows the runtime endpoint's rules.
+- **7 Oct 2026, standard:** Sri Lankan auditors apply ISA 240 as SLAuS 240, so the criteria and the working paper now cite both, in the edition that applies to the ledger's period (ADR-022). The [README](../README.md), [scope](scope.md) and [evaluation plan](evaluation-plan.md) were updated to match.
+- **7 Oct 2026, platform:** the team confirmed processing and storage (ADR-016) and observability and delivery (ADR-019), so both are now Accepted. The load test still checks ADR-016's sizing.
