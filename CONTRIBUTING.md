@@ -43,7 +43,7 @@ How the team works in this repository. The reasons are in the [ADR](docs/adr.md)
 ## Pull requests and commits
 
 - One change per pull request, describing what changed and why.
-- Link the spec or ADR it implements, and update the ADR when a decision changes.
+- Link the spec or ADR it implements, cite the requirement IDs it covers (see the [ground rules](specs/00-ground-rules.md)), and update the ADR when a decision changes.
 - Write commit messages as a short imperative subject line, then a body explaining why.
 - Disclose AI assistance in the pull request description (handbook §6).
 
