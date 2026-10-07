@@ -21,7 +21,7 @@ Every later step depends on one exact, shared understanding of a ledger. This sp
 - How files are uploaded, who may upload them and how runs start (spec 08).
 - Generating ledgers and their labels (spec 02), and converting public datasets (spec 10).
 - How the validation report appears in the working paper (spec 07).
-- Foreign-currency amounts: every amount is in the engagement's currency (open question 1).
+- Foreign-currency amounts: every amount is in the engagement's currency (team decision, 7 Oct 2026).
 
 ## 3. Requirements
 
@@ -187,7 +187,7 @@ A submission that breaks any of these is refused whole, and nothing is stored:
 | `users.csv` | 100,000 rows |
 | `engagement.json` | 1 MB |
 
-These are starting values. The load test sets the final ones (open question 5).
+These are the final values (team decision, 7 Oct 2026). The load test confirms them at 400,000 and 1,000,000 rows.
 
 ### 4.8 Row rules
 
@@ -271,11 +271,13 @@ The snapshot hash must be the same for the same ledger, however its rows are ord
 
 | # | Question | Who answers | Needed by |
 |---|---|---|---|
-| 1 | Do any planted scenarios need foreign-currency lines? This spec assumes every amount is in the engagement's currency. | The team | Spec 02 agreed |
-| 2 | ISA 240 lists entries without account numbers as a warning sign. This spec rejects them and shows them in the validation report. Should they be accepted and flagged instead? | The audit adviser | Spec 03 agreed |
-| 3 | This spec accepts rows from users missing from `users.csv`, with a warning. Should criterion C2 treat an unknown user as a warning sign? | The audit adviser | Spec 03 agreed |
-| 4 | Should Parquet be accepted alongside CSV? CSV only for now. | The team | Before the load test |
-| 5 | The size limits are first guesses. What should the final values be? | The load test | Before release |
+| 2 | ISA 240 lists entries without account numbers as a warning sign. This spec rejects them and shows them in the validation report. Should they be accepted and flagged instead? | The team | Spec 03 agreed |
+
+**Answered on 7 Oct 2026 (team decisions):**
+1. No foreign currencies. Every amount is in the engagement's currency, and the generator writes no foreign-currency lines (spec 02).
+3. Yes. A row whose user is missing from `users.csv` stays accepted with an `UNKNOWN_USER` warning, and criterion C2 treats an unknown user as a warning sign (spec 03).
+4. CSV only for now. Parquet can be added later through a format version change.
+5. The size limits in §4.7 and the field limits in §4.1 stay as first proposed. The load test confirms them.
 
 ---
 

@@ -51,7 +51,7 @@ Rules:
 
 **Team decision:** the brief's five criteria, weighted equally (1.0 each) and defined as in the sample working paper:
 - C1: account used three times or fewer in the year, or in the suspense/clearing class;
-- C2: user posted fewer than 10 journals in the year, or is a system or IT user posting manually;
+- C2: user posted fewer than 10 journals in the year, is a system or IT user posting manually, or is missing from the user list (added 7 Oct 2026, spec 01);
 - C3: a multiple of LKR 50,000 and at least LKR 1,000,000;
 - C4: last 5 days of the year, outside 08:00–18:00 Sri Lanka time, or on a weekend or public holiday;
 - C5: narration empty, shorter than 12 characters, or only generic words.
