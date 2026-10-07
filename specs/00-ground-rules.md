@@ -19,7 +19,7 @@ The client brief sets the requirements, and [scope.md](../docs/scope.md) sets th
    - acceptance tests;
    - open questions.
 
-   A template will follow.
+   Start from the [template](_template.md).
 3. Each requirement has an ID made of its spec's prefix and a number, such as `RNK-04`. It is one testable sentence in EARS form (the Easy Approach to Requirements Syntax):
    - always: "Tickmark shall …";
    - on an event: "When …, Tickmark shall …";
