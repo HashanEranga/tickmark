@@ -1,6 +1,6 @@
 # Spec 01 · Ledger format
 
-**Status:** Draft, 7 Oct 2026 · **Owner:** to be assigned · **Prefix:** FMT · **ADRs:** ADR-003, ADR-004, ADR-013, ADR-016 · **Ground rules:** GR-04 to GR-08, GR-14, GR-16, GR-21, GR-25, GR-27
+**Status:** Agreed, 7 Oct 2026 · **Owner:** to be assigned · **Prefix:** FMT · **ADRs:** ADR-003, ADR-004, ADR-013, ADR-016 · **Ground rules:** GR-04 to GR-08, GR-14, GR-16, GR-21, GR-25, GR-27
 
 This spec defines the files an engagement team submits to start work on a ledger, the checks Tickmark runs on them, the report of what it accepted and rejected, and the immutable ledger snapshot that every run then reads. The ledger generator (spec 02) writes these files, the dataset converters (spec 10) produce them from public datasets, and the rules engine (spec 03) scores the snapshot.
 
@@ -269,12 +269,11 @@ The snapshot hash must be the same for the same ledger, however its rows are ord
 
 ## 6. Open questions
 
-| # | Question | Who answers | Needed by |
-|---|---|---|---|
-| 2 | ISA 240 lists entries without account numbers as a warning sign. This spec rejects them and shows them in the validation report. Should they be accepted and flagged instead? | The team | Spec 03 agreed |
+None.
 
 **Answered on 7 Oct 2026 (team decisions):**
 1. No foreign currencies. Every amount is in the engagement's currency, and the generator writes no foreign-currency lines (spec 02).
+2. Rejected. ISA 240 lists entries without account numbers as a warning sign, but a row with no account, or with an account missing from `accounts.csv`, is rejected and listed in the validation report, which the working paper includes. It is not ranked.
 3. Yes. A row whose user is missing from `users.csv` stays accepted with an `UNKNOWN_USER` warning, and criterion C2 treats an unknown user as a warning sign (spec 03).
 4. CSV only for now. Parquet can be added later through a format version change.
 5. The size limits in §4.7 and the field limits in §4.1 stay as first proposed. The load test confirms them.
