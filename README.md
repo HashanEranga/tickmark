@@ -40,6 +40,8 @@ The client's reviewers will re-run the same ledger and expect the same ranking, 
 
 **Evaluation:** the [evaluation plan](docs/evaluation-plan.md) measures detection and agent quality on our synthetic ledgers, with two public datasets as an external check.
 
+**Specs:** the [ground rules](specs/00-ground-rules.md) every component follows, and the list of component specs in build order.
+
 **Contributing:** branch, pull-request and release rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Rules for explaining it
