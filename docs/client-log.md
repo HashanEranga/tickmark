@@ -50,10 +50,10 @@ Rules:
 **Raised:** 24 Sep 2026 · **Status:** Team decision (30 Sep 2026) · **Send:** yes, as "please confirm"
 
 **Team decision:** the brief's five criteria, weighted equally (1.0 each) and defined as in the sample working paper:
-- C1: account used three times or fewer in the year, or in the suspense/clearing class;
+- C1: account used three times or fewer in the year, in the suspense/clearing class, or paired with an account class it rarely meets (added 7 Oct 2026, spec 03);
 - C2: user posted fewer than 10 journals in the year, is a system or IT user posting manually, or is missing from the user list (added 7 Oct 2026, spec 01);
 - C3: a multiple of LKR 50,000 and at least LKR 1,000,000;
-- C4: last 5 days of the year, outside 08:00–18:00 Sri Lanka time, or on a weekend or public holiday;
+- C4: last 5 days of the year, outside 08:00–18:00 Sri Lanka time or on a weekend or public holiday (manual journals only, from 7 Oct 2026), or keyed after the period was closed (added 7 Oct 2026, spec 03);
 - C5: narration empty, shorter than 12 characters, or only generic words.
 
 The score is multiplied by 1.5 at or above performance materiality. No must-include rules and no random picks for now.
